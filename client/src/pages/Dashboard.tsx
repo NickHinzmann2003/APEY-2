@@ -220,10 +220,13 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   onDone: () => void;
 }) {
   const { toast } = useToast();
-  const [form, setForm] = useState<Partial<InsertExercise>>({
-    name: "", sets: 3, repsMin: 8, repsMax: 12, weight: 20, increment: 2.5,
-    order: exerciseCount, trainingDayId,
-  });
+  // Store all numeric fields as strings so the user can freely clear and retype them
+  const [name, setName] = useState("");
+  const [sets, setSets] = useState("3");
+  const [repsMin, setRepsMin] = useState("8");
+  const [repsMax, setRepsMax] = useState("12");
+  const [weight, setWeight] = useState("20");
+  const [increment, setIncrement] = useState("2.5");
 
   const addMutation = useMutation({
     mutationFn: (data: InsertExercise) => apiRequest("POST", "/api/exercises", data),
@@ -235,14 +238,28 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
     },
   });
 
+  const handleSave = () => {
+    const parsed: InsertExercise = {
+      name,
+      sets: parseInt(sets) || 1,
+      repsMin: parseInt(repsMin) || 1,
+      repsMax: parseInt(repsMax) || 1,
+      weight: parseFloat(weight) || 0,
+      increment: parseFloat(increment) || 0,
+      order: exerciseCount,
+      trainingDayId,
+    };
+    addMutation.mutate(parsed);
+  };
+
   return (
     <div className="p-4 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
       <div>
         <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Übungsname</Label>
         <Input
           placeholder="z.B. Bankdrücken"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className="bg-background border-white/10 h-12 text-base"
           data-testid="input-exercise-name"
           autoFocus
@@ -255,8 +272,8 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
           <Input
             type="number"
             inputMode="numeric"
-            value={form.sets}
-            onChange={(e) => setForm({ ...form, sets: parseInt(e.target.value) || 1 })}
+            value={sets}
+            onChange={(e) => setSets(e.target.value)}
             className="bg-background border-white/10 h-12 text-base"
             data-testid="input-exercise-sets"
           />
@@ -267,8 +284,8 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
             type="number"
             inputMode="decimal"
             step="0.5"
-            value={form.increment}
-            onChange={(e) => setForm({ ...form, increment: parseFloat(e.target.value) || 0 })}
+            value={increment}
+            onChange={(e) => setIncrement(e.target.value)}
             className="bg-background border-white/10 h-12 text-base"
             data-testid="input-exercise-increment"
           />
@@ -283,8 +300,8 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
           <Input
             type="number"
             inputMode="numeric"
-            value={form.repsMin}
-            onChange={(e) => setForm({ ...form, repsMin: parseInt(e.target.value) || 1 })}
+            value={repsMin}
+            onChange={(e) => setRepsMin(e.target.value)}
             className="bg-background border-white/10 h-12 text-base text-center"
             data-testid="input-exercise-reps-min"
             placeholder="6"
@@ -293,8 +310,8 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
           <Input
             type="number"
             inputMode="numeric"
-            value={form.repsMax}
-            onChange={(e) => setForm({ ...form, repsMax: parseInt(e.target.value) || 1 })}
+            value={repsMax}
+            onChange={(e) => setRepsMax(e.target.value)}
             className="bg-background border-white/10 h-12 text-base text-center"
             data-testid="input-exercise-reps-max"
             placeholder="8"
@@ -308,8 +325,8 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
           type="number"
           inputMode="decimal"
           step="0.5"
-          value={form.weight}
-          onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })}
+          value={weight}
+          onChange={(e) => setWeight(e.target.value)}
           className="bg-background border-white/10 h-12 text-base"
           data-testid="input-exercise-weight"
         />
@@ -318,8 +335,8 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
       <div className="flex gap-3 pt-1">
         <Button
           className="flex-1 h-12 shadow-lg shadow-primary/20 text-base"
-          onClick={() => addMutation.mutate(form as InsertExercise)}
-          disabled={!form.name || addMutation.isPending}
+          onClick={handleSave}
+          disabled={!name.trim() || addMutation.isPending}
           data-testid="btn-save-exercise"
         >
           {addMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
