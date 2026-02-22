@@ -2,7 +2,7 @@
 
 ## Overview
 
-FITCORE is a German-language fitness studio web application that allows authenticated users to manage their training days and exercises. Users can create training day plans, add exercises with sets/weights/increments, and track progressive overload by incrementing weights. The app features a dark-mode-first aesthetic with neon green accents, designed to feel like a modern fitness studio.
+FITCORE is a German-language fitness studio web application that allows authenticated users to manage their training plans, days, and exercises. Users can create training plans (e.g. Upper/Lower) that contain collapsible training days, add exercises with sets/weights/increments, increment or decrement weights, and view graphical weight-progression charts per exercise. The app features a dark-mode-first aesthetic with neon green accents, designed to feel like a modern fitness studio.
 
 The project follows a full-stack TypeScript monorepo architecture with a React frontend, Express backend, and PostgreSQL database.
 
@@ -44,9 +44,11 @@ The app conditionally renders Landing or Dashboard at the root route based on au
 - **Tables**:
   - `users` - User profiles (managed by Replit Auth)
   - `sessions` - Session storage (mandatory for Replit Auth)
-  - `training_days` - Training day plans per user (name, userId, createdAt)
+  - `training_plans` - Top-level training plan containers per user (e.g. "Upper/Lower")
+  - `training_days` - Training day plans per user, optionally nested inside a plan (planId nullable)
   - `exercises` - Individual exercises per training day (name, sets, weight, increment, order)
-- **Relations**: users → training_days (one-to-many), training_days → exercises (one-to-many)
+  - `weight_history` - Per-exercise weight history log for progress chart tracking
+- **Relations**: users → training_plans → training_days → exercises → weight_history
 
 ### Shared Code (shared/)
 - `shared/schema.ts` - Drizzle table definitions, relations, Zod insert schemas, TypeScript types
