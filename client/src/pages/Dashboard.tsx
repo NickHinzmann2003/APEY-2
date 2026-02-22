@@ -137,6 +137,7 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
         <p className="font-semibold truncate">{exercise.name}</p>
         <p className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">{exercise.sets}</span> Sätze ·{" "}
+          <span className="font-medium text-foreground">{exercise.repsMin}–{exercise.repsMax}</span> Wdh ·{" "}
           <span className="font-medium text-foreground">{exercise.weight} kg</span>
           <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
             ±{exercise.increment} kg
@@ -199,7 +200,7 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
 }) {
   const { toast } = useToast();
   const [form, setForm] = useState<Partial<InsertExercise>>({
-    name: "", sets: 3, weight: 20, increment: 2.5,
+    name: "", sets: 3, repsMin: 8, repsMax: 12, weight: 20, increment: 2.5,
     order: exerciseCount, trainingDayId,
   });
 
@@ -230,16 +231,36 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
           <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Sätze</Label>
           <Input
             type="number" value={form.sets}
-            onChange={(e) => setForm({ ...form, sets: parseInt(e.target.value) })}
+            onChange={(e) => setForm({ ...form, sets: parseInt(e.target.value) || 1 })}
             className="bg-background border-white/10"
             data-testid="input-exercise-sets"
           />
         </div>
         <div>
+          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Wiederholungen (Min – Max)</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="number" value={form.repsMin}
+              onChange={(e) => setForm({ ...form, repsMin: parseInt(e.target.value) || 1 })}
+              className="bg-background border-white/10"
+              data-testid="input-exercise-reps-min"
+              placeholder="6"
+            />
+            <span className="text-muted-foreground font-bold shrink-0">–</span>
+            <Input
+              type="number" value={form.repsMax}
+              onChange={(e) => setForm({ ...form, repsMax: parseInt(e.target.value) || 1 })}
+              className="bg-background border-white/10"
+              data-testid="input-exercise-reps-max"
+              placeholder="8"
+            />
+          </div>
+        </div>
+        <div>
           <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Startgewicht (kg)</Label>
           <Input
             type="number" step="0.5" value={form.weight}
-            onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) })}
+            onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })}
             className="bg-background border-white/10"
             data-testid="input-exercise-weight"
           />
@@ -248,7 +269,7 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
           <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Steigerung (kg)</Label>
           <Input
             type="number" step="0.5" value={form.increment}
-            onChange={(e) => setForm({ ...form, increment: parseFloat(e.target.value) })}
+            onChange={(e) => setForm({ ...form, increment: parseFloat(e.target.value) || 0 })}
             className="bg-background border-white/10"
             data-testid="input-exercise-increment"
           />

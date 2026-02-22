@@ -26,6 +26,8 @@ export const exercises = pgTable("exercises", {
   trainingDayId: integer("training_day_id").references(() => trainingDays.id).notNull(),
   name: text("name").notNull(),
   sets: integer("sets").notNull(),
+  repsMin: integer("reps_min").notNull().default(8),
+  repsMax: integer("reps_max").notNull().default(12),
   weight: real("weight").notNull(),
   increment: real("increment").notNull(),
   order: integer("order").notNull(),
