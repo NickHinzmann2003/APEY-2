@@ -42,6 +42,17 @@ export async function registerRoutes(
     res.status(201).json(day);
   });
 
+  app.patch("/api/training-days/:id", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const { name } = req.body;
+    if (!name || typeof name !== "string") {
+      return res.status(400).json({ message: "Name erforderlich" });
+    }
+    const day = await storage.renameTrainingDay(Number(req.params.id), userId, name);
+    if (!day) return res.status(404).json({ message: "Trainingstag nicht gefunden" });
+    res.json(day);
+  });
+
   app.delete("/api/training-days/:id", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
     await storage.deleteTrainingDay(Number(req.params.id), userId);

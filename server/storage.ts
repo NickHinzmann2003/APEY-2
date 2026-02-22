@@ -18,6 +18,7 @@ export interface IStorage {
   // Training Days (standalone, no plan)
   getTrainingDays(userId: string): Promise<TrainingDayWithExercises[]>;
   createTrainingDay(userId: string, data: InsertTrainingDay): Promise<TrainingDay>;
+  renameTrainingDay(id: number, userId: string, name: string): Promise<TrainingDay | undefined>;
   deleteTrainingDay(id: number, userId: string): Promise<void>;
 
   // Exercises
@@ -80,6 +81,15 @@ export class DatabaseStorage implements IStorage {
 
   async createTrainingDay(userId: string, data: InsertTrainingDay): Promise<TrainingDay> {
     const [day] = await db.insert(trainingDays).values({ ...data, userId }).returning();
+    return day;
+  }
+
+  async renameTrainingDay(id: number, userId: string, name: string): Promise<TrainingDay | undefined> {
+    const [day] = await db
+      .update(trainingDays)
+      .set({ name })
+      .where(and(eq(trainingDays.id, id), eq(trainingDays.userId, userId)))
+      .returning();
     return day;
   }
 

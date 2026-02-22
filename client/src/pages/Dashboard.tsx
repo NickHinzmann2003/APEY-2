@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import {
   Plus, Trash2, Loader2,
   Dumbbell, ChevronDown, ChevronRight, FolderOpen, Folder,
-  BarChart2, X, Minus
+  BarChart2, X, Minus, Pencil, Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Shell } from "@/components/layout/Shell";
@@ -339,8 +339,27 @@ function TrainingDayItem({
   onDelete: () => void;
   onChartOpen: (ex: Exercise) => void;
 }) {
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState(day.name);
+
+  const renameMutation = useMutation({
+    mutationFn: (name: string) => apiRequest("PATCH", `/api/training-days/${day.id}`, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      setIsRenaming(false);
+      toast({ title: "Trainingstag umbenannt" });
+    },
+  });
+
+  const handleRenameConfirm = () => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === day.name) { setIsRenaming(false); return; }
+    renameMutation.mutate(trimmed);
+  };
 
   return (
     <div
@@ -348,33 +367,75 @@ function TrainingDayItem({
       data-testid={`training-day-${day.id}`}
     >
       {/* Day header — full-height touch target */}
-      <div
-        className="flex items-center justify-between px-4 cursor-pointer select-none active:bg-white/5 transition-colors"
-        style={{ minHeight: 56 }}
-        onClick={() => setOpen(!open)}
-        data-testid={`btn-toggle-day-${day.id}`}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
-      >
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {open
-            ? <ChevronDown className="w-5 h-5 text-primary shrink-0" />
-            : <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-          }
-          <span className="font-semibold text-base truncate">{day.name}</span>
-          <span className="text-xs text-muted-foreground shrink-0">
-            {day.exercises.length} {day.exercises.length === 1 ? "Übung" : "Übungen"}
-          </span>
+      {isRenaming ? (
+        <div className="flex items-center gap-2 px-3 py-2.5" style={{ minHeight: 56 }}>
+          <Input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            className="flex-1 h-10 text-base bg-background border-white/20"
+            data-testid={`input-rename-day-${day.id}`}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleRenameConfirm();
+              if (e.key === "Escape") { setIsRenaming(false); setNewName(day.name); }
+            }}
+          />
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-primary/15 text-primary active:bg-primary/30 shrink-0"
+            onClick={handleRenameConfirm}
+            disabled={renameMutation.isPending}
+            data-testid={`btn-rename-confirm-${day.id}`}
+          >
+            {renameMutation.isPending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Check className="w-4 h-4" />}
+          </button>
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground active:bg-white/10 shrink-0"
+            onClick={() => { setIsRenaming(false); setNewName(day.name); }}
+            data-testid={`btn-rename-cancel-${day.id}`}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          className="w-11 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive shrink-0"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          data-testid={`btn-delete-day-${day.id}`}
+      ) : (
+        <div
+          className="flex items-center justify-between px-4 cursor-pointer select-none active:bg-white/5 transition-colors"
+          style={{ minHeight: 56 }}
+          onClick={() => setOpen(!open)}
+          data-testid={`btn-toggle-day-${day.id}`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
         >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {open
+              ? <ChevronDown className="w-5 h-5 text-primary shrink-0" />
+              : <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+            }
+            <span className="font-semibold text-base truncate">{day.name}</span>
+            <span className="text-xs text-muted-foreground shrink-0">
+              {day.exercises.length} {day.exercises.length === 1 ? "Übung" : "Übungen"}
+            </span>
+          </div>
+          <div className="flex items-center shrink-0">
+            <button
+              className="w-10 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-primary"
+              onClick={(e) => { e.stopPropagation(); setNewName(day.name); setIsRenaming(true); }}
+              data-testid={`btn-rename-day-${day.id}`}
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              className="w-10 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive shrink-0"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              data-testid={`btn-delete-day-${day.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Day content */}
       {open && (
