@@ -288,10 +288,13 @@ function TrainingDayItem({
       data-testid={`training-day-${day.id}`}
     >
       {/* Day header */}
-      <button
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/5 transition-colors text-left"
+      <div
+        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/5 transition-colors cursor-pointer select-none"
         onClick={() => setOpen(!open)}
         data-testid={`btn-toggle-day-${day.id}`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
       >
         <div className="flex items-center gap-3">
           {open ? (
@@ -313,7 +316,7 @@ function TrainingDayItem({
         >
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
-      </button>
+      </div>
 
       {/* Day content */}
       {open && (
@@ -384,10 +387,13 @@ function TrainingPlanSection({
       data-testid={`training-plan-${plan.id}`}
     >
       {/* Plan header */}
-      <button
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/5 transition-colors text-left"
+      <div
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/5 transition-colors cursor-pointer select-none"
         onClick={() => setOpen(!open)}
         data-testid={`btn-toggle-plan-${plan.id}`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
       >
         <div className="flex items-center gap-3">
           {open ? (
@@ -412,7 +418,7 @@ function TrainingPlanSection({
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
-      </button>
+      </div>
 
       {/* Plan content */}
       {open && (

@@ -9,7 +9,7 @@ export function Landing() {
         <div className="flex items-center gap-2 text-primary">
           <Dumbbell className="h-8 w-8" />
           <span className="font-display font-bold text-2xl tracking-wider uppercase text-white">
-            FIT<span className="text-primary">CORE</span>
+            PROJECT <span className="text-primary">ADONIS</span>
           </span>
         </div>
         <a 

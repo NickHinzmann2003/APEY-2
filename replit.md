@@ -1,8 +1,8 @@
-# FITCORE - Fitness Studio Training Tracker
+# Project Adonis - Fitness Training Tracker
 
 ## Overview
 
-FITCORE is a German-language fitness studio web application that allows authenticated users to manage their training plans, days, and exercises. Users can create training plans (e.g. Upper/Lower) that contain collapsible training days, add exercises with sets/weights/increments, increment or decrement weights, and view graphical weight-progression charts per exercise. The app features a dark-mode-first aesthetic with neon green accents, designed to feel like a modern fitness studio.
+Project Adonis is a German-language fitness studio web application that allows authenticated users to manage their training plans, days, and exercises. Users can create training plans (e.g. Upper/Lower) that contain collapsible training days, add exercises with sets/weights/increments, increment or decrement weights, and view graphical weight-progression charts per exercise. The app features a dark-mode-first aesthetic with neon green accents, designed to feel like a modern fitness studio.
 
 The project follows a full-stack TypeScript monorepo architecture with a React frontend, Express backend, and PostgreSQL database.
 
