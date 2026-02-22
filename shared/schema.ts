@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, varchar, real } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -6,43 +6,43 @@ import { z } from "zod";
 export * from "./models/auth";
 import { users } from "./models/auth";
 
-export const classes = pgTable("classes", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  instructor: text("instructor").notNull(),
-  capacity: integer("capacity").notNull(),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
-});
-
-export const bookings = pgTable("bookings", {
+export const trainingDays = pgTable("training_days", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
-  classId: integer("class_id").references(() => classes.id).notNull(),
+  name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const classesRelations = relations(classes, ({ many }) => ({
-  bookings: many(bookings),
-}));
+export const exercises = pgTable("exercises", {
+  id: serial("id").primaryKey(),
+  trainingDayId: integer("training_day_id").references(() => trainingDays.id).notNull(),
+  name: text("name").notNull(),
+  sets: integer("sets").notNull(),
+  weight: real("weight").notNull(),
+  increment: real("increment").notNull(),
+  order: integer("order").notNull(),
+});
 
-export const bookingsRelations = relations(bookings, ({ one }) => ({
+export const trainingDaysRelations = relations(trainingDays, ({ one, many }) => ({
   user: one(users, {
-    fields: [bookings.userId],
+    fields: [trainingDays.userId],
     references: [users.id],
   }),
-  class: one(classes, {
-    fields: [bookings.classId],
-    references: [classes.id],
+  exercises: many(exercises),
+}));
+
+export const exercisesRelations = relations(exercises, ({ one }) => ({
+  trainingDay: one(trainingDays, {
+    fields: [exercises.trainingDayId],
+    references: [trainingDays.id],
   }),
 }));
 
-export const insertClassSchema = createInsertSchema(classes).omit({ id: true });
-export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
+export const insertTrainingDaySchema = createInsertSchema(trainingDays).omit({ id: true, createdAt: true, userId: true });
+export const insertExerciseSchema = createInsertSchema(exercises).omit({ id: true });
 
-export type Class = typeof classes.$inferSelect;
-export type InsertClass = z.infer<typeof insertClassSchema>;
+export type TrainingDay = typeof trainingDays.$inferSelect;
+export type InsertTrainingDay = z.infer<typeof insertTrainingDaySchema>;
 
-export type Booking = typeof bookings.$inferSelect;
-export type InsertBooking = z.infer<typeof insertBookingSchema>;
+export type Exercise = typeof exercises.$inferSelect;
+export type InsertExercise = z.infer<typeof insertExerciseSchema>;
