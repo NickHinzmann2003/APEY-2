@@ -1,140 +1,241 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { TrainingDay, Exercise, InsertTrainingDay, InsertExercise } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Trash2, ArrowUpCircle, Loader2, Dumbbell } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Shell } from "@/components/layout/Shell";
-import { ClassCard } from "@/components/classes/ClassCard";
-import { BookingCard } from "@/components/classes/BookingCard";
-import { useClasses } from "@/hooks/use-classes";
-import { useBookings } from "@/hooks/use-bookings";
-import { Loader2, Dumbbell, CalendarX2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export function Dashboard() {
-  const [activeTab, setActiveTab] = useState<"classes" | "bookings">("classes");
-  
-  const { data: classes, isLoading: isLoadingClasses, error: classesError } = useClasses();
-  const { data: bookings, isLoading: isLoadingBookings, error: bookingsError } = useBookings();
+  const { toast } = useToast();
+  const [newDayName, setNewDayName] = useState("");
 
-  const isLoading = isLoadingClasses || isLoadingBookings;
-  const error = classesError || bookingsError;
+  const { data: trainingDays, isLoading } = useQuery<(TrainingDay & { exercises: Exercise[] })[]>({
+    queryKey: ["/api/training-days"],
+  });
 
-  // Derive which classes are booked by the user
-  const bookedClassIds = new Set(bookings?.map(b => b.classId) || []);
+  const createDayMutation = useMutation({
+    mutationFn: async (name: string) => {
+      await apiRequest("POST", "/api/training-days", { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      setNewDayName("");
+      toast({ title: "Trainingstag erstellt" });
+    },
+  });
+
+  const deleteDayMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/training-days/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      toast({ title: "Trainingstag gelöscht" });
+    },
+  });
 
   if (isLoading) {
     return (
       <Shell>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-primary">
-          <Loader2 className="w-12 h-12 animate-spin mb-4" />
-          <p className="text-muted-foreground font-display tracking-widest uppercase text-sm">Lade Daten...</p>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </Shell>
     );
   }
-
-  if (error) {
-    return (
-      <Shell>
-        <div className="glass-panel p-8 rounded-2xl text-center max-w-md mx-auto mt-12">
-          <p className="text-destructive font-semibold mb-2">Ein Fehler ist aufgetreten</p>
-          <p className="text-sm text-muted-foreground">{error.message}</p>
-        </div>
-      </Shell>
-    );
-  }
-
-  // Filter out classes that are in the past for the main schedule
-  const upcomingClasses = classes?.filter(c => new Date(c.endTime) > new Date())
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()) || [];
 
   return (
     <Shell>
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="font-display text-4xl font-bold mb-2">Dein Training</h1>
-          <p className="text-muted-foreground">Verwalte deine Kurse und behalte deine Ziele im Blick.</p>
-        </div>
-        
-        {/* Custom Tab Switcher */}
-        <div className="flex bg-card border border-white/5 p-1.5 rounded-2xl self-start md:self-auto shadow-lg">
-          <button
-            onClick={() => setActiveTab("classes")}
-            className={cn(
-              "px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300",
-              activeTab === "classes" 
-                ? "bg-white/10 text-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-            )}
-          >
-            Verfügbare Kurse
-          </button>
-          <button
-            onClick={() => setActiveTab("bookings")}
-            className={cn(
-              "px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center gap-2",
-              activeTab === "bookings" 
-                ? "bg-white/10 text-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-            )}
-          >
-            Meine Buchungen
-            {bookings && bookings.length > 0 && (
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-[10px] font-bold",
-                activeTab === "bookings" ? "bg-primary text-primary-foreground" : "bg-white/10 text-muted-foreground"
-              )}>
-                {bookings.length}
-              </span>
-            )}
-          </button>
-        </div>
+      <div className="mb-8">
+        <h1 className="font-display text-4xl font-bold mb-2">Mein Trainingsplan</h1>
+        <p className="text-muted-foreground">Erstelle deine Trainingstage und verwalte deine Übungen.</p>
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab === "classes" && (
-          <>
-            {upcomingClasses.length === 0 ? (
-              <div className="text-center py-24 glass-panel rounded-3xl border-dashed">
-                <Dumbbell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <h3 className="text-xl font-display font-semibold mb-2">Keine Kurse verfügbar</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">Aktuell sind keine neuen Kurse geplant. Schau später nochmal vorbei!</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {upcomingClasses.map((gymClass) => (
-                  <ClassCard 
-                    key={gymClass.id} 
-                    gymClass={gymClass} 
-                    isBooked={bookedClassIds.has(gymClass.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
+      <Card className="mb-8 glass-panel border-none shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-xl">Neuen Trainingstag erstellen</CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-4">
+          <Input
+            placeholder="z.B. Push, Pull, Beine"
+            value={newDayName}
+            onChange={(e) => setNewDayName(e.target.value)}
+            className="bg-white/5 border-white/10"
+          />
+          <Button 
+            onClick={() => createDayMutation.mutate(newDayName)}
+            disabled={!newDayName || createDayMutation.isPending}
+            className="shadow-lg shadow-primary/20"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Hinzufügen
+          </Button>
+        </CardContent>
+      </Card>
 
-        {activeTab === "bookings" && (
-          <div className="max-w-4xl mx-auto space-y-4">
-            {!bookings || bookings.length === 0 ? (
-              <div className="text-center py-24 glass-panel rounded-3xl border-dashed">
-                <CalendarX2 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <h3 className="text-xl font-display font-semibold mb-2">Noch keine Buchungen</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">Du hast noch keine Kurse gebucht. Wechsle zum Tab "Verfügbare Kurse", um zu starten.</p>
-                <button 
-                  onClick={() => setActiveTab("classes")}
-                  className="mt-6 text-primary hover:underline font-semibold"
-                >
-                  Kurse ansehen &rarr;
-                </button>
-              </div>
-            ) : (
-              bookings
-                .sort((a, b) => new Date(b.class.startTime).getTime() - new Date(a.class.startTime).getTime())
-                .map((booking) => (
-                  <BookingCard key={booking.id} booking={booking} />
-                ))
-            )}
+      <div className="grid gap-8">
+        {trainingDays?.length === 0 ? (
+          <div className="text-center py-24 glass-panel rounded-3xl border-dashed">
+            <Dumbbell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-xl font-display font-semibold mb-2">Noch kein Trainingsplan</h3>
+            <p className="text-muted-foreground max-w-sm mx-auto">Erstelle oben deinen ersten Trainingstag, um zu starten.</p>
           </div>
+        ) : (
+          trainingDays?.map((day) => (
+            <TrainingDayCard key={day.id} day={day} onDelete={() => deleteDayMutation.mutate(day.id)} />
+          ))
         )}
       </div>
     </Shell>
+  );
+}
+
+function TrainingDayCard({ day, onDelete }: { day: TrainingDay & { exercises: Exercise[] }, onDelete: () => void }) {
+  const { toast } = useToast();
+  const [isAdding, setIsAdding] = useState(false);
+  const [newExercise, setNewExercise] = useState<Partial<InsertExercise>>({
+    name: "",
+    sets: 3,
+    weight: 20,
+    increment: 2.5,
+    order: day.exercises.length,
+    trainingDayId: day.id
+  });
+
+  const addExerciseMutation = useMutation({
+    mutationFn: async (data: InsertExercise) => {
+      await apiRequest("POST", "/api/exercises", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      setIsAdding(false);
+      setNewExercise({
+        name: "",
+        sets: 3,
+        weight: 20,
+        increment: 2.5,
+        order: day.exercises.length + 1,
+        trainingDayId: day.id
+      });
+      toast({ title: "Übung hinzugefügt" });
+    },
+  });
+
+  const incrementMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("POST", `/api/exercises/${id}/increment`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      toast({ title: "Gewicht gesteigert!" });
+    },
+  });
+
+  const deleteExerciseMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/exercises/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+    },
+  });
+
+  return (
+    <Card className="overflow-hidden border-none bg-card/50 backdrop-blur-sm shadow-lg">
+      <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 bg-white/5 px-6 py-4">
+        <CardTitle className="text-2xl font-display">{day.name}</CardTitle>
+        <Button variant="ghost" size="icon" onClick={onDelete} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+          <Trash2 className="w-5 h-5" />
+        </Button>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          {day.exercises.map((ex) => (
+            <div key={ex.id} className="group flex items-center justify-between p-4 border border-white/5 rounded-2xl bg-white/5 hover:bg-white/10 transition-all duration-300">
+              <div>
+                <p className="text-lg font-semibold">{ex.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{ex.sets}</span> Sätze à <span className="font-medium text-foreground">{ex.weight}kg</span> 
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">+{ex.increment}kg</span>
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500 hover:text-white transition-all duration-300"
+                  onClick={() => incrementMutation.mutate(ex.id)}
+                  disabled={incrementMutation.isPending}
+                >
+                  <ArrowUpCircle className="w-4 h-4 mr-2" /> Steigern
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => deleteExerciseMutation.mutate(ex.id)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          ))}
+
+          {isAdding ? (
+            <div className="p-6 border border-primary/20 rounded-2xl bg-primary/5 space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Name der Übung</Label>
+                  <Input 
+                    placeholder="z.B. Bankdrücken"
+                    value={newExercise.name} 
+                    onChange={e => setNewExercise({...newExercise, name: e.target.value})}
+                    className="bg-background border-white/10"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Sätze</Label>
+                  <Input 
+                    type="number" 
+                    value={newExercise.sets} 
+                    onChange={e => setNewExercise({...newExercise, sets: parseInt(e.target.value)})}
+                    className="bg-background border-white/10"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Startgewicht (kg)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.5"
+                    value={newExercise.weight} 
+                    onChange={e => setNewExercise({...newExercise, weight: parseFloat(e.target.value)})}
+                    className="bg-background border-white/10"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Steigerung (kg)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.5"
+                    value={newExercise.increment} 
+                    onChange={e => setNewExercise({...newExercise, increment: parseFloat(e.target.value)})}
+                    className="bg-background border-white/10"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button className="flex-1 shadow-lg shadow-primary/20" onClick={() => addExerciseMutation.mutate(newExercise as InsertExercise)} disabled={!newExercise.name || addExerciseMutation.isPending}>
+                  Übung Speichern
+                </Button>
+                <Button variant="ghost" onClick={() => setIsAdding(false)}>Abbrechen</Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="outline" className="w-full h-14 border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 text-muted-foreground hover:text-primary transition-all duration-300 rounded-2xl" onClick={() => setIsAdding(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Übung hinzufügen
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
