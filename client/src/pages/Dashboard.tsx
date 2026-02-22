@@ -8,11 +8,11 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
-  Plus, Trash2, ArrowUpCircle, ArrowDownCircle, Loader2,
+  Plus, Trash2, Loader2,
   Dumbbell, ChevronDown, ChevronRight, FolderOpen, Folder,
-  BarChart2, X
+  BarChart2, X, Minus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Shell } from "@/components/layout/Shell";
@@ -45,60 +45,72 @@ function WeightHistoryDialog({ exercise, onClose }: { exercise: Exercise; onClos
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg bg-zinc-900 border-white/10">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-lg bg-zinc-900 border-white/10 rounded-2xl p-5">
         <DialogHeader>
-          <DialogTitle className="font-display text-xl flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-primary" />
-            {exercise.name} — Verlauf
+          <DialogTitle className="font-display text-lg flex items-center gap-2">
+            <BarChart2 className="w-5 h-5 text-primary shrink-0" />
+            {exercise.name}
           </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-sm">
+            Gewichtsverlauf
+          </DialogDescription>
         </DialogHeader>
+        <div className="flex gap-4 text-sm pt-1">
+          <div className="bg-white/5 rounded-xl px-3 py-2 flex-1 text-center">
+            <p className="text-muted-foreground text-xs mb-0.5">Aktuell</p>
+            <p className="font-bold text-lg text-foreground">{exercise.weight} kg</p>
+          </div>
+          <div className="bg-primary/10 rounded-xl px-3 py-2 flex-1 text-center">
+            <p className="text-muted-foreground text-xs mb-0.5">Steigerung</p>
+            <p className="font-bold text-lg text-primary">+{exercise.increment} kg</p>
+          </div>
+          <div className="bg-white/5 rounded-xl px-3 py-2 flex-1 text-center">
+            <p className="text-muted-foreground text-xs mb-0.5">Wdh</p>
+            <p className="font-bold text-lg text-foreground">{exercise.repsMin}–{exercise.repsMax}</p>
+          </div>
+        </div>
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+          <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
         ) : chartData.length < 2 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>Noch nicht genug Daten für einen Verlauf.</p>
-            <p className="text-sm mt-1">Steigere das Gewicht mindestens zweimal, um einen Graphen zu sehen.</p>
+          <div className="text-center py-10 text-muted-foreground text-sm">
+            <p>Noch nicht genug Daten.</p>
+            <p className="mt-1">Steigere das Gewicht mindestens zweimal, um einen Graphen zu sehen.</p>
           </div>
         ) : (
-          <div className="pt-2">
-            <div className="mb-4 flex gap-6 text-sm text-muted-foreground">
-              <span>Aktuell: <strong className="text-foreground">{exercise.weight} kg</strong></span>
-              <span>Steigerung: <strong className="text-primary">+{exercise.increment} kg</strong></span>
-            </div>
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis
-                  tick={{ fill: "#888", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={["auto", "auto"]}
-                  tickFormatter={(v) => `${v}kg`}
-                />
-                <Tooltip
-                  contentStyle={{ background: "#18181b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }}
-                  labelStyle={{ color: "#a1a1aa" }}
-                  formatter={(v: number) => [`${v} kg`, "Gewicht"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="Gewicht"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis
+                tick={{ fill: "#888", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                domain={["auto", "auto"]}
+                tickFormatter={(v) => `${v}kg`}
+                width={45}
+              />
+              <Tooltip
+                contentStyle={{ background: "#18181b", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 13 }}
+                labelStyle={{ color: "#a1a1aa" }}
+                formatter={(v: number) => [`${v} kg`, "Gewicht"]}
+              />
+              <Line
+                type="monotone"
+                dataKey="Gewicht"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2.5}
+                dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-// ---------- Exercise Row ----------
+// ---------- Exercise Card (mobile-first) ----------
 function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpen: (ex: Exercise) => void }) {
   const { toast } = useToast();
 
@@ -107,7 +119,7 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
-      toast({ title: "Gewicht gesteigert!" });
+      toast({ title: "✓ Gewicht gesteigert" });
     },
   });
 
@@ -128,65 +140,74 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
     },
   });
 
+  const isPending = incrementMutation.isPending || decrementMutation.isPending;
+
   return (
     <div
       data-testid={`exercise-row-${exercise.id}`}
-      className="group flex items-center justify-between p-4 border border-white/5 rounded-2xl bg-white/5 hover:bg-white/8 transition-all duration-200"
+      className="border border-white/8 rounded-2xl bg-white/5 overflow-hidden"
     >
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold truncate">{exercise.name}</p>
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{exercise.sets}</span> Sätze ·{" "}
-          <span className="font-medium text-foreground">{exercise.repsMin}–{exercise.repsMax}</span> Wdh ·{" "}
-          <span className="font-medium text-foreground">{exercise.weight} kg</span>
-          <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
-            ±{exercise.increment} kg
-          </span>
-        </p>
+      {/* Top row: name + secondary actions */}
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-base leading-tight truncate">{exercise.name}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            <span className="text-foreground font-medium">{exercise.sets}</span> Sätze ·{" "}
+            <span className="text-foreground font-medium">{exercise.repsMin}–{exercise.repsMax}</span> Wdh
+            <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+              ±{exercise.increment} kg
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-1 ml-2 shrink-0">
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground active:bg-primary/10 active:text-primary"
+            onClick={() => onChartOpen(exercise)}
+            data-testid={`btn-chart-${exercise.id}`}
+          >
+            <BarChart2 className="w-5 h-5" />
+          </button>
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground active:bg-destructive/10 active:text-destructive"
+            onClick={() => deleteMutation.mutate()}
+            data-testid={`btn-delete-exercise-${exercise.id}`}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Trash2 className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-1 ml-3 shrink-0">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-8 h-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-          onClick={() => onChartOpen(exercise)}
-          data-testid={`btn-chart-${exercise.id}`}
-          title="Verlauf anzeigen"
-        >
-          <BarChart2 className="w-4 h-4" />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 px-2 text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-300"
+
+      {/* Weight control row */}
+      <div className="flex items-center gap-2 px-3 pb-3">
+        <button
+          className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl bg-red-500/10 text-red-400 active:bg-red-500/25 disabled:opacity-40 transition-colors font-semibold text-sm"
           onClick={() => decrementMutation.mutate()}
-          disabled={decrementMutation.isPending || exercise.weight <= 0}
+          disabled={isPending || exercise.weight <= 0}
           data-testid={`btn-decrement-${exercise.id}`}
-          title="Gewicht reduzieren"
         >
-          <ArrowDownCircle className="w-3.5 h-3.5" />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-8 px-2 text-green-400 border-green-500/20 hover:bg-green-500/10 hover:text-green-300"
+          <Minus className="w-4 h-4" />
+          <span>{exercise.increment} kg</span>
+        </button>
+
+        <div className="flex-[1.4] h-12 flex flex-col items-center justify-center rounded-xl bg-white/8 border border-white/10">
+          <span className="font-display font-bold text-xl leading-tight text-foreground">
+            {exercise.weight}
+          </span>
+          <span className="text-xs text-muted-foreground leading-none">kg</span>
+        </div>
+
+        <button
+          className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl bg-green-500/10 text-green-400 active:bg-green-500/25 disabled:opacity-40 transition-colors font-semibold text-sm"
           onClick={() => incrementMutation.mutate()}
-          disabled={incrementMutation.isPending}
+          disabled={isPending}
           data-testid={`btn-increment-${exercise.id}`}
-          title="Gewicht steigern"
         >
-          <ArrowUpCircle className="w-3.5 h-3.5" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-          onClick={() => deleteMutation.mutate()}
-          data-testid={`btn-delete-exercise-${exercise.id}`}
-          title="Übung löschen"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </Button>
+          <Plus className="w-4 h-4" />
+          <span>{exercise.increment} kg</span>
+        </button>
       </div>
     </div>
   );
@@ -215,77 +236,96 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   });
 
   return (
-    <div className="p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2">
-          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Übungsname</Label>
-          <Input
-            placeholder="z.B. Bankdrücken"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="bg-background border-white/10"
-            data-testid="input-exercise-name"
-          />
-        </div>
+    <div className="p-4 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+      <div>
+        <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Übungsname</Label>
+        <Input
+          placeholder="z.B. Bankdrücken"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          className="bg-background border-white/10 h-12 text-base"
+          data-testid="input-exercise-name"
+          autoFocus
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Sätze</Label>
+          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Sätze</Label>
           <Input
-            type="number" value={form.sets}
+            type="number"
+            inputMode="numeric"
+            value={form.sets}
             onChange={(e) => setForm({ ...form, sets: parseInt(e.target.value) || 1 })}
-            className="bg-background border-white/10"
+            className="bg-background border-white/10 h-12 text-base"
             data-testid="input-exercise-sets"
           />
         </div>
         <div>
-          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Wiederholungen (Min – Max)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number" value={form.repsMin}
-              onChange={(e) => setForm({ ...form, repsMin: parseInt(e.target.value) || 1 })}
-              className="bg-background border-white/10"
-              data-testid="input-exercise-reps-min"
-              placeholder="6"
-            />
-            <span className="text-muted-foreground font-bold shrink-0">–</span>
-            <Input
-              type="number" value={form.repsMax}
-              onChange={(e) => setForm({ ...form, repsMax: parseInt(e.target.value) || 1 })}
-              className="bg-background border-white/10"
-              data-testid="input-exercise-reps-max"
-              placeholder="8"
-            />
-          </div>
-        </div>
-        <div>
-          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Startgewicht (kg)</Label>
+          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Steigerung (kg)</Label>
           <Input
-            type="number" step="0.5" value={form.weight}
-            onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })}
-            className="bg-background border-white/10"
-            data-testid="input-exercise-weight"
-          />
-        </div>
-        <div>
-          <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-1.5 block">Steigerung (kg)</Label>
-          <Input
-            type="number" step="0.5" value={form.increment}
+            type="number"
+            inputMode="decimal"
+            step="0.5"
+            value={form.increment}
             onChange={(e) => setForm({ ...form, increment: parseFloat(e.target.value) || 0 })}
-            className="bg-background border-white/10"
+            className="bg-background border-white/10 h-12 text-base"
             data-testid="input-exercise-increment"
           />
         </div>
       </div>
-      <div className="flex gap-3">
+
+      <div>
+        <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">
+          Wiederholungen (Min – Max)
+        </Label>
+        <div className="flex items-center gap-3">
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={form.repsMin}
+            onChange={(e) => setForm({ ...form, repsMin: parseInt(e.target.value) || 1 })}
+            className="bg-background border-white/10 h-12 text-base text-center"
+            data-testid="input-exercise-reps-min"
+            placeholder="6"
+          />
+          <span className="text-muted-foreground font-bold text-lg shrink-0">–</span>
+          <Input
+            type="number"
+            inputMode="numeric"
+            value={form.repsMax}
+            onChange={(e) => setForm({ ...form, repsMax: parseInt(e.target.value) || 1 })}
+            className="bg-background border-white/10 h-12 text-base text-center"
+            data-testid="input-exercise-reps-max"
+            placeholder="8"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Startgewicht (kg)</Label>
+        <Input
+          type="number"
+          inputMode="decimal"
+          step="0.5"
+          value={form.weight}
+          onChange={(e) => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })}
+          className="bg-background border-white/10 h-12 text-base"
+          data-testid="input-exercise-weight"
+        />
+      </div>
+
+      <div className="flex gap-3 pt-1">
         <Button
-          className="flex-1 shadow-lg shadow-primary/20"
+          className="flex-1 h-12 shadow-lg shadow-primary/20 text-base"
           onClick={() => addMutation.mutate(form as InsertExercise)}
           disabled={!form.name || addMutation.isPending}
           data-testid="btn-save-exercise"
         >
           {addMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Übung speichern
+          Speichern
         </Button>
-        <Button variant="ghost" onClick={onDone}>Abbrechen</Button>
+        <Button variant="ghost" className="h-12 px-5" onClick={onDone}>Abbrechen</Button>
       </div>
     </div>
   );
@@ -293,55 +333,52 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
 
 // ---------- Training Day (collapsible) ----------
 function TrainingDayItem({
-  day, onDelete, onChartOpen, initiallyOpen = false
+  day, onDelete, onChartOpen,
 }: {
   day: DayWithExercises;
   onDelete: () => void;
   onChartOpen: (ex: Exercise) => void;
-  initiallyOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(initiallyOpen);
+  const [open, setOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
 
   return (
     <div
-      className="border border-white/5 rounded-2xl overflow-hidden bg-card/40 backdrop-blur-sm"
+      className="border border-white/8 rounded-2xl overflow-hidden bg-zinc-900/60"
       data-testid={`training-day-${day.id}`}
     >
-      {/* Day header */}
+      {/* Day header — full-height touch target */}
       <div
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-white/5 transition-colors cursor-pointer select-none"
+        className="flex items-center justify-between px-4 cursor-pointer select-none active:bg-white/5 transition-colors"
+        style={{ minHeight: 56 }}
         onClick={() => setOpen(!open)}
         data-testid={`btn-toggle-day-${day.id}`}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
       >
-        <div className="flex items-center gap-3">
-          {open ? (
-            <ChevronDown className="w-4 h-4 text-primary shrink-0" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-          )}
-          <span className="font-semibold text-base">{day.name}</span>
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {open
+            ? <ChevronDown className="w-5 h-5 text-primary shrink-0" />
+            : <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+          }
+          <span className="font-semibold text-base truncate">{day.name}</span>
+          <span className="text-xs text-muted-foreground shrink-0">
             {day.exercises.length} {day.exercises.length === 1 ? "Übung" : "Übungen"}
           </span>
         </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="w-7 h-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+        <button
+          className="w-11 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive shrink-0"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
           data-testid={`btn-delete-day-${day.id}`}
         >
-          <Trash2 className="w-3.5 h-3.5" />
-        </Button>
+          <Trash2 className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Day content */}
       {open && (
-        <div className="px-5 pb-5 space-y-3 border-t border-white/5 pt-4 animate-in fade-in slide-in-from-top-1 duration-200">
+        <div className="px-3 pb-3 space-y-2.5 border-t border-white/5 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
           {day.exercises.map((ex) => (
             <ExerciseRow key={ex.id} exercise={ex} onChartOpen={onChartOpen} />
           ))}
@@ -353,14 +390,13 @@ function TrainingDayItem({
               onDone={() => setIsAdding(false)}
             />
           ) : (
-            <Button
-              variant="outline"
-              className="w-full h-12 border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 text-muted-foreground hover:text-primary transition-all rounded-2xl"
+            <button
+              className="w-full h-12 border border-dashed border-white/10 rounded-2xl text-muted-foreground active:text-primary active:border-primary/50 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
               onClick={() => setIsAdding(true)}
               data-testid={`btn-add-exercise-${day.id}`}
             >
-              <Plus className="w-4 h-4 mr-2" /> Übung hinzufügen
-            </Button>
+              <Plus className="w-4 h-4" /> Übung hinzufügen
+            </button>
           )}
         </div>
       )}
@@ -404,46 +440,46 @@ function TrainingPlanSection({
 
   return (
     <div
-      className="border border-white/8 rounded-3xl overflow-hidden bg-card/30 backdrop-blur-sm shadow-xl"
+      className="border border-white/10 rounded-2xl overflow-hidden bg-zinc-900/40 shadow-lg"
       data-testid={`training-plan-${plan.id}`}
     >
       {/* Plan header */}
       <div
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/5 transition-colors cursor-pointer select-none"
+        className="flex items-center justify-between px-4 cursor-pointer select-none active:bg-white/5 transition-colors"
+        style={{ minHeight: 64 }}
         onClick={() => setOpen(!open)}
         data-testid={`btn-toggle-plan-${plan.id}`}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
       >
-        <div className="flex items-center gap-3">
-          {open ? (
-            <FolderOpen className="w-5 h-5 text-primary shrink-0" />
-          ) : (
-            <Folder className="w-5 h-5 text-muted-foreground shrink-0" />
-          )}
-          <span className="font-display font-bold text-xl">{plan.name}</span>
-          <span className="text-xs text-muted-foreground ml-1">
-            {plan.trainingDays.length} {plan.trainingDays.length === 1 ? "Tag" : "Tage"} · {totalExercises} Übungen
-          </span>
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {open
+            ? <FolderOpen className="w-6 h-6 text-primary shrink-0" />
+            : <Folder className="w-6 h-6 text-muted-foreground shrink-0" />
+          }
+          <div className="min-w-0">
+            <p className="font-display font-bold text-lg leading-tight truncate">{plan.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {plan.trainingDays.length} {plan.trainingDays.length === 1 ? "Tag" : "Tage"} · {totalExercises} Übungen
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center shrink-0">
           <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${open ? "" : "-rotate-90"}`} />
-          <Button
-            size="icon"
-            variant="ghost"
-            className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          <button
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive ml-1"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             data-testid={`btn-delete-plan-${plan.id}`}
           >
             <Trash2 className="w-4 h-4" />
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Plan content */}
       {open && (
-        <div className="px-6 pb-6 space-y-3 border-t border-white/5 pt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="px-3 pb-3 space-y-2.5 border-t border-white/5 pt-3 animate-in fade-in slide-in-from-top-2 duration-200">
           {plan.trainingDays.length === 0 && !isAddingDay && (
             <p className="text-sm text-muted-foreground text-center py-4">
               Noch keine Trainingstage in diesem Plan.
@@ -460,36 +496,36 @@ function TrainingPlanSection({
           ))}
 
           {isAddingDay ? (
-            <div className="flex gap-3 p-4 border border-primary/20 rounded-2xl bg-primary/5 animate-in fade-in duration-200">
+            <div className="flex gap-2 p-3 border border-primary/20 rounded-2xl bg-primary/5 animate-in fade-in duration-200">
               <Input
                 placeholder="z.B. Upper, Lower, Push..."
                 value={newDayName}
                 onChange={(e) => setNewDayName(e.target.value)}
-                className="bg-background border-white/10"
+                className="bg-background border-white/10 h-12 text-base flex-1"
                 data-testid="input-day-name-in-plan"
                 onKeyDown={(e) => e.key === "Enter" && newDayName && createDayMutation.mutate(newDayName)}
                 autoFocus
               />
               <Button
+                className="h-12 px-4 shrink-0"
                 onClick={() => createDayMutation.mutate(newDayName)}
                 disabled={!newDayName || createDayMutation.isPending}
                 data-testid="btn-confirm-add-day-in-plan"
               >
                 {createDayMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               </Button>
-              <Button variant="ghost" size="icon" onClick={() => setIsAddingDay(false)}>
+              <Button variant="ghost" size="icon" className="h-12 w-12 shrink-0" onClick={() => setIsAddingDay(false)}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
           ) : (
-            <Button
-              variant="outline"
-              className="w-full h-12 border-dashed border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/50 text-muted-foreground hover:text-primary transition-all rounded-2xl"
+            <button
+              className="w-full h-12 border border-dashed border-white/10 rounded-2xl text-muted-foreground active:text-primary active:border-primary/50 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
               onClick={() => setIsAddingDay(true)}
               data-testid={`btn-add-day-to-plan-${plan.id}`}
             >
-              <Plus className="w-4 h-4 mr-2" /> Trainingstag hinzufügen
-            </Button>
+              <Plus className="w-4 h-4" /> Trainingstag hinzufügen
+            </button>
           )}
         </div>
       )}
@@ -501,12 +537,8 @@ function TrainingPlanSection({
 export function Dashboard() {
   const { toast } = useToast();
   const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
-
-  // Plans state
   const [newPlanName, setNewPlanName] = useState("");
   const [isAddingPlan, setIsAddingPlan] = useState(false);
-
-  // Standalone days state
   const [newDayName, setNewDayName] = useState("");
   const [isAddingDay, setIsAddingDay] = useState(false);
 
@@ -569,70 +601,69 @@ export function Dashboard() {
 
   return (
     <Shell>
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-display text-4xl font-bold mb-2">Mein Training</h1>
-        <p className="text-muted-foreground">Verwalte deine Trainingspläne, Tage und Übungen.</p>
+      <div className="mb-6">
+        <h1 className="font-display text-3xl font-bold mb-1">Mein Training</h1>
+        <p className="text-muted-foreground text-sm">Trainingspläne, Tage und Übungen</p>
       </div>
 
       {isEmpty ? (
-        <div className="text-center py-28 border border-dashed border-white/10 rounded-3xl">
-          <Dumbbell className="w-14 h-14 text-muted-foreground/20 mx-auto mb-4" />
-          <h3 className="text-xl font-display font-semibold mb-2">Noch kein Training erfasst</h3>
-          <p className="text-muted-foreground max-w-sm mx-auto mb-8">
+        <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
+          <Dumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+          <h3 className="text-lg font-display font-semibold mb-2">Noch kein Training erfasst</h3>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
             Erstelle einen Trainingsplan (z.B. Upper/Lower) oder füge direkt einzelne Trainingstage hinzu.
           </p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button onClick={() => setIsAddingPlan(true)} data-testid="btn-create-first-plan">
+          <div className="flex flex-col gap-3 px-8">
+            <Button className="h-12 text-base" onClick={() => setIsAddingPlan(true)} data-testid="btn-create-first-plan">
               <Folder className="w-4 h-4 mr-2" /> Trainingsplan erstellen
             </Button>
-            <Button variant="outline" onClick={() => setIsAddingDay(true)} data-testid="btn-create-first-day">
-              <Plus className="w-4 h-4 mr-2" /> Trainingstag erstellen
+            <Button variant="outline" className="h-12 text-base border-white/10" onClick={() => setIsAddingDay(true)} data-testid="btn-create-first-day">
+              <Plus className="w-4 h-4 mr-2" /> Einzelnen Tag erstellen
             </Button>
           </div>
         </div>
       ) : null}
 
-      {/* Training Plans */}
-      {(!isEmpty || plans?.length || isAddingPlan) && (
-        <section className="mb-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-              <Folder className="w-5 h-5 text-primary" />
+      {/* Training Plans section */}
+      {(!isEmpty || (plans?.length ?? 0) > 0 || isAddingPlan) && (
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-base font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
+              <Folder className="w-4 h-4" />
               Trainingspläne
             </h2>
             {!isAddingPlan && (
-              <Button
-                size="sm" variant="outline"
-                className="border-white/10 hover:border-primary/50 hover:text-primary"
+              <button
+                className="flex items-center gap-1 text-sm font-medium text-primary active:opacity-70 px-3 py-2 rounded-xl"
                 onClick={() => setIsAddingPlan(true)}
                 data-testid="btn-create-plan"
               >
-                <Plus className="w-4 h-4 mr-1" /> Neuer Plan
-              </Button>
+                <Plus className="w-4 h-4" /> Neuer Plan
+              </button>
             )}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {isAddingPlan && (
-              <div className="flex gap-3 p-5 border border-primary/20 rounded-3xl bg-primary/5 animate-in fade-in duration-200">
+              <div className="flex gap-2 p-3 border border-primary/20 rounded-2xl bg-primary/5 animate-in fade-in duration-200">
                 <Input
                   placeholder="z.B. Upper / Lower, Push Pull Legs..."
                   value={newPlanName}
                   onChange={(e) => setNewPlanName(e.target.value)}
-                  className="bg-background border-white/10"
+                  className="bg-background border-white/10 h-12 text-base flex-1"
                   data-testid="input-plan-name"
                   onKeyDown={(e) => e.key === "Enter" && newPlanName && createPlanMutation.mutate(newPlanName)}
                   autoFocus
                 />
                 <Button
+                  className="h-12 px-4 shrink-0"
                   onClick={() => createPlanMutation.mutate(newPlanName)}
                   disabled={!newPlanName || createPlanMutation.isPending}
                   data-testid="btn-confirm-create-plan"
                 >
-                  {createPlanMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Erstellen"}
+                  {createPlanMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "OK"}
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsAddingPlan(false)}>
+                <Button variant="ghost" size="icon" className="h-12 w-12 shrink-0" onClick={() => setIsAddingPlan(false)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -650,46 +681,46 @@ export function Dashboard() {
         </section>
       )}
 
-      {/* Standalone Training Days */}
-      {(!isEmpty || standaloneDays?.length || isAddingDay) && (
+      {/* Standalone Days section */}
+      {(!isEmpty || (standaloneDays?.length ?? 0) > 0 || isAddingDay) && (
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-semibold flex items-center gap-2">
-              <Dumbbell className="w-5 h-5 text-primary" />
-              Einzelne Trainingstage
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-base font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
+              <Dumbbell className="w-4 h-4" />
+              Einzelne Tage
             </h2>
             {!isAddingDay && (
-              <Button
-                size="sm" variant="outline"
-                className="border-white/10 hover:border-primary/50 hover:text-primary"
+              <button
+                className="flex items-center gap-1 text-sm font-medium text-primary active:opacity-70 px-3 py-2 rounded-xl"
                 onClick={() => setIsAddingDay(true)}
                 data-testid="btn-create-standalone-day"
               >
-                <Plus className="w-4 h-4 mr-1" /> Neuer Tag
-              </Button>
+                <Plus className="w-4 h-4" /> Neuer Tag
+              </button>
             )}
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {isAddingDay && (
-              <div className="flex gap-3 p-4 border border-primary/20 rounded-2xl bg-primary/5 animate-in fade-in duration-200">
+              <div className="flex gap-2 p-3 border border-primary/20 rounded-2xl bg-primary/5 animate-in fade-in duration-200">
                 <Input
                   placeholder="z.B. Beine, Rücken, Brust..."
                   value={newDayName}
                   onChange={(e) => setNewDayName(e.target.value)}
-                  className="bg-background border-white/10"
+                  className="bg-background border-white/10 h-12 text-base flex-1"
                   data-testid="input-standalone-day-name"
                   onKeyDown={(e) => e.key === "Enter" && newDayName && createDayMutation.mutate(newDayName)}
                   autoFocus
                 />
                 <Button
+                  className="h-12 px-4 shrink-0"
                   onClick={() => createDayMutation.mutate(newDayName)}
                   disabled={!newDayName || createDayMutation.isPending}
                   data-testid="btn-confirm-create-day"
                 >
                   {createDayMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                 </Button>
-                <Button variant="ghost" size="icon" onClick={() => setIsAddingDay(false)}>
+                <Button variant="ghost" size="icon" className="h-12 w-12 shrink-0" onClick={() => setIsAddingDay(false)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -705,7 +736,7 @@ export function Dashboard() {
             ))}
 
             {(standaloneDays?.length ?? 0) === 0 && !isAddingDay && !isEmpty && (
-              <div className="text-center py-8 border border-dashed border-white/8 rounded-2xl text-muted-foreground text-sm">
+              <div className="text-center py-6 border border-dashed border-white/8 rounded-2xl text-muted-foreground text-sm">
                 Keine einzelnen Trainingstage vorhanden.
               </div>
             )}
@@ -713,7 +744,6 @@ export function Dashboard() {
         </section>
       )}
 
-      {/* Weight History Dialog */}
       {chartExercise && (
         <WeightHistoryDialog
           exercise={chartExercise}
