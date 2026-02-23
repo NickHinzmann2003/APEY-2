@@ -13,7 +13,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <Link href="/" className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
             <Dumbbell className="h-6 w-6" />
             <span className="font-display font-bold text-xl tracking-wider uppercase">
-              PROJECT <span className="text-foreground">ADONIS</span>
+              APEX <span className="text-foreground">by Nick</span>
             </span>
           </Link>
           
@@ -41,7 +41,7 @@ export function Shell({ children }: { children: ReactNode }) {
       
       <footer className="py-6 border-t border-white/5 mt-auto">
         <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Project Adonis. Alle Rechte vorbehalten.
+          &copy; {new Date().getFullYear()} APEX by Nick. Alle Rechte vorbehalten.
         </div>
       </footer>
     </div>
