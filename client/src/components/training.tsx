@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   TrainingPlan, TrainingDay, Exercise, WeightHistory,
-  InsertExercise
+  ExerciseTemplate, InsertExercise
 } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -216,12 +216,18 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   onDone: () => void;
 }) {
   const { toast } = useToast();
-  const [name, setName] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [sets, setSets] = useState("3");
   const [repsMin, setRepsMin] = useState("8");
   const [repsMax, setRepsMax] = useState("12");
   const [weight, setWeight] = useState("20");
   const [increment, setIncrement] = useState("2.5");
+
+  const { data: templates } = useQuery<ExerciseTemplate[]>({
+    queryKey: ["/api/exercise-templates"],
+  });
+
+  const selectedTemplate = templates?.find(t => t.id === selectedTemplateId);
 
   const addMutation = useMutation({
     mutationFn: (data: InsertExercise) => apiRequest("POST", "/api/exercises", data),
@@ -235,8 +241,10 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   });
 
   const handleSave = () => {
+    if (!selectedTemplate) return;
     const parsed: InsertExercise = {
-      name,
+      name: selectedTemplate.name,
+      exerciseTemplateId: selectedTemplate.id,
       sets: parseInt(sets) || 1,
       repsMin: parseInt(repsMin) || 1,
       repsMax: parseInt(repsMax) || 1,
@@ -248,18 +256,51 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
     addMutation.mutate(parsed);
   };
 
+  if (!selectedTemplateId) {
+    return (
+      <div className="p-4 border border-primary/20 rounded-2xl bg-primary/5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+        <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Übung wählen</Label>
+        {(!templates || templates.length === 0) ? (
+          <div className="text-center py-6 text-muted-foreground text-sm">
+            <p>Noch keine Übungen angelegt.</p>
+            <p className="mt-1">Erstelle zuerst Übungen im Tab "Übungen".</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            {templates.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setSelectedTemplateId(t.id)}
+                data-testid={`btn-pick-template-${t.id}`}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-background border border-white/10 active:bg-white/10 text-left transition-colors"
+              >
+                <Plus className="w-4 h-4 text-primary shrink-0" />
+                <span className="font-medium text-base truncate">{t.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <Button variant="ghost" className="w-full h-10 mt-2" onClick={onDone} data-testid="btn-cancel-pick-template">Abbrechen</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
       <div>
-        <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Übungsname</Label>
-        <Input
-          placeholder="z.B. Bankdrücken"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="bg-background border-white/10 h-12 text-base"
-          data-testid="input-exercise-name"
-          autoFocus
-        />
+        <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Übung</Label>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-12 bg-background border border-white/10 rounded-md px-3 flex items-center text-base font-medium">
+            {selectedTemplate?.name}
+          </div>
+          <button
+            className="h-12 px-3 text-sm text-primary font-medium"
+            onClick={() => setSelectedTemplateId(null)}
+            data-testid="btn-change-template"
+          >
+            Ändern
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -332,13 +373,13 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
         <Button
           className="flex-1 h-12 shadow-lg shadow-primary/20 text-base"
           onClick={handleSave}
-          disabled={!name.trim() || addMutation.isPending}
+          disabled={addMutation.isPending}
           data-testid="btn-save-exercise"
         >
           {addMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Speichern
         </Button>
-        <Button variant="ghost" className="h-12 px-5" onClick={onDone}>Abbrechen</Button>
+        <Button variant="ghost" className="h-12 px-5" onClick={onDone} data-testid="btn-cancel-add-exercise">Abbrechen</Button>
       </div>
     </div>
   );

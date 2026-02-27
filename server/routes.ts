@@ -10,7 +10,24 @@ export async function registerRoutes(
   await setupAuth(app);
   registerAuthRoutes(app);
 
-  // Training Plans
+  app.get("/api/exercise-templates", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const templates = await storage.getExerciseTemplates(userId);
+    res.json(templates);
+  });
+
+  app.post("/api/exercise-templates", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const template = await storage.createExerciseTemplate(userId, req.body);
+    res.status(201).json(template);
+  });
+
+  app.delete("/api/exercise-templates/:id", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    await storage.deleteExerciseTemplate(Number(req.params.id), userId);
+    res.status(204).end();
+  });
+
   app.get("/api/training-plans", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
     const plans = await storage.getTrainingPlans(userId);
@@ -29,10 +46,15 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
-  // Training Days (standalone, no plan)
   app.get("/api/training-days", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
     const days = await storage.getTrainingDays(userId);
+    res.json(days);
+  });
+
+  app.get("/api/all-training-days", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const days = await storage.getAllTrainingDaysForUser(userId);
     res.json(days);
   });
 
@@ -59,7 +81,6 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
-  // Exercises
   app.post("/api/exercises", isAuthenticated, async (req, res) => {
     const exercise = await storage.createExercise(req.body);
     res.status(201).json(exercise);
@@ -87,15 +108,32 @@ export async function registerRoutes(
     res.json(history);
   });
 
+  app.get("/api/exercises/:id/last-workout", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const log = await storage.getLastWorkoutLog(Number(req.params.id), userId);
+    res.json(log ?? null);
+  });
+
   app.delete("/api/exercises/:id", isAuthenticated, async (req, res) => {
     await storage.deleteExercise(Number(req.params.id));
     res.status(204).end();
   });
 
-  app.get("/api/all-training-days", isAuthenticated, async (req: any, res) => {
+  app.post("/api/workout-logs", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
-    const days = await storage.getAllTrainingDaysForUser(userId);
-    res.json(days);
+    const { exerciseId, weight, setsCompleted, totalSets, repsAchieved } = req.body;
+    if (!exerciseId || typeof weight !== "number" || typeof setsCompleted !== "number" || typeof totalSets !== "number") {
+      return res.status(400).json({ message: "Ungültige Daten" });
+    }
+    const log = await storage.createWorkoutLog({
+      exerciseId,
+      weight,
+      setsCompleted,
+      totalSets,
+      repsAchieved: !!repsAchieved,
+    }, userId);
+    if (!log) return res.status(403).json({ message: "Nicht berechtigt" });
+    res.status(201).json(log);
   });
 
   app.get("/api/analytics", isAuthenticated, async (req: any, res) => {

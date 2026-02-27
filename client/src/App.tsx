@@ -10,7 +10,7 @@ import { Shell } from "@/components/layout/Shell";
 
 import { Landing } from "@/pages/Landing";
 import { PlansPage } from "@/pages/PlansPage";
-import { DaysPage } from "@/pages/DaysPage";
+import { ExercisesPage } from "@/pages/ExercisesPage";
 import { ActiveTraining } from "@/pages/ActiveTraining";
 import { Analytics } from "@/pages/Analytics";
 import { Profile } from "@/pages/Profile";
@@ -23,7 +23,7 @@ function AuthenticatedApp() {
           <Redirect to="/plans" />
         </Route>
         <Route path="/plans" component={PlansPage} />
-        <Route path="/days" component={DaysPage} />
+        <Route path="/exercises" component={ExercisesPage} />
         <Route path="/training" component={ActiveTraining} />
         <Route path="/analytics" component={Analytics} />
         <Route path="/profile" component={Profile} />

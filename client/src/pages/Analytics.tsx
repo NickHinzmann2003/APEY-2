@@ -5,6 +5,7 @@ type AnalyticsItem = {
   exerciseId: number;
   exerciseName: string;
   dayName: string;
+  templateId: number | null;
   currentWeight: number;
   oldWeight: number;
   percentChange: number;
@@ -21,13 +22,6 @@ export function Analytics() {
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
-  }
-
-  const grouped = new Map<string, AnalyticsItem[]>();
-  for (const item of data ?? []) {
-    const list = grouped.get(item.dayName) || [];
-    list.push(item);
-    grouped.set(item.dayName, list);
   }
 
   const totalAvgChange = data && data.length > 0
@@ -69,41 +63,34 @@ export function Analytics() {
             </div>
           </div>
 
-          {Array.from(grouped.entries()).map(([dayName, items]) => (
-            <div key={dayName} className="mb-5">
-              <h2 className="font-display text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
-                {dayName}
-              </h2>
-              <div className="space-y-2">
-                {items.map(item => (
-                  <div
-                    key={item.exerciseId}
-                    data-testid={`analytics-exercise-${item.exerciseId}`}
-                    className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/8 bg-white/5"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-base truncate">{item.exerciseName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.oldWeight} kg → {item.currentWeight} kg
-                      </p>
-                    </div>
-                    <div className={`flex items-center gap-1 text-sm font-bold shrink-0 ml-3 ${
-                      item.percentChange > 0 ? "text-green-400" : item.percentChange < 0 ? "text-red-400" : "text-muted-foreground"
-                    }`}>
-                      {item.percentChange > 0 ? (
-                        <TrendingUp className="w-4 h-4" />
-                      ) : item.percentChange < 0 ? (
-                        <TrendingDown className="w-4 h-4" />
-                      ) : (
-                        <Minus className="w-4 h-4" />
-                      )}
-                      <span>{item.percentChange > 0 ? "+" : ""}{item.percentChange}%</span>
-                    </div>
-                  </div>
-                ))}
+          <div className="space-y-2">
+            {data.map(item => (
+              <div
+                key={item.exerciseId}
+                data-testid={`analytics-exercise-${item.exerciseId}`}
+                className="flex items-center justify-between px-4 py-3 rounded-2xl border border-white/8 bg-white/5"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-base truncate">{item.exerciseName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {item.oldWeight} kg → {item.currentWeight} kg
+                  </p>
+                </div>
+                <div className={`flex items-center gap-1 text-sm font-bold shrink-0 ml-3 ${
+                  item.percentChange > 0 ? "text-green-400" : item.percentChange < 0 ? "text-red-400" : "text-muted-foreground"
+                }`}>
+                  {item.percentChange > 0 ? (
+                    <TrendingUp className="w-4 h-4" />
+                  ) : item.percentChange < 0 ? (
+                    <TrendingDown className="w-4 h-4" />
+                  ) : (
+                    <Minus className="w-4 h-4" />
+                  )}
+                  <span>{item.percentChange > 0 ? "+" : ""}{item.percentChange}%</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </>
       )}
     </div>

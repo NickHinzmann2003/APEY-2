@@ -1,29 +1,52 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Exercise } from "@shared/schema";
+import { Exercise, WorkoutLog } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dumbbell, ChevronRight, Loader2, Minus, Plus,
-  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2
+  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DayWithExercises, WeightHistoryDialog } from "@/components/training";
 
-type ExerciseState = {
-  repsAchieved: boolean;
-  completed: boolean;
-};
+type SetState = boolean[];
 
-function ActiveExerciseCard({
+function LastPerformancePreview({ exerciseId }: { exerciseId: number }) {
+  const { data: lastLog, isLoading } = useQuery<WorkoutLog | null>({
+    queryKey: ["/api/exercises", exerciseId, "last-workout"],
+    queryFn: () => fetch(`/api/exercises/${exerciseId}/last-workout`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  if (isLoading) return null;
+  if (!lastLog) return null;
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-sm text-muted-foreground" data-testid={`last-workout-${exerciseId}`}>
+      <Clock className="w-4 h-4 shrink-0 text-primary/60" />
+      <span>
+        Letztes Mal: <span className="text-foreground font-medium">{lastLog.weight} kg</span>
+        {" · "}
+        <span className="text-foreground font-medium">{lastLog.setsCompleted}/{lastLog.totalSets}</span> Sätze
+        {lastLog.repsAchieved && <span className="text-primary"> · Wdh ✓</span>}
+      </span>
+    </div>
+  );
+}
+
+function ExpandedExerciseCard({
   exercise,
-  state,
+  setsState,
+  repsAchieved,
+  onToggleSet,
   onToggleReps,
   onComplete,
   onChartOpen,
 }: {
   exercise: Exercise;
-  state: ExerciseState;
+  setsState: boolean[];
+  repsAchieved: boolean;
+  onToggleSet: (setIndex: number) => void;
   onToggleReps: () => void;
   onComplete: () => void;
   onChartOpen: (ex: Exercise) => void;
@@ -35,7 +58,6 @@ function ActiveExerciseCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
       toast({ title: "Gewicht gesteigert" });
     },
   });
@@ -45,38 +67,21 @@ function ActiveExerciseCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
       toast({ title: "Gewicht reduziert" });
     },
   });
 
   const isPending = incrementMutation.isPending || decrementMutation.isPending;
-
-  if (state.completed) {
-    return (
-      <div
-        data-testid={`active-exercise-${exercise.id}`}
-        className="border border-primary/20 rounded-2xl bg-primary/5 px-4 py-3 flex items-center gap-3 opacity-60"
-      >
-        <CheckCircle2 className="w-6 h-6 text-primary shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-base truncate">{exercise.name}</p>
-          <p className="text-sm text-muted-foreground">
-            {exercise.weight} kg · {state.repsAchieved ? "Wdh geschafft" : "Wdh nicht geschafft"}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const completedSets = setsState.filter(Boolean).length;
 
   return (
     <div
       data-testid={`active-exercise-${exercise.id}`}
-      className="border border-white/10 rounded-2xl bg-white/5 overflow-hidden"
+      className="border border-primary/30 rounded-2xl bg-primary/5 overflow-hidden animate-in fade-in duration-200"
     >
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-base leading-tight truncate">{exercise.name}</p>
+          <p className="font-semibold text-lg leading-tight truncate">{exercise.name}</p>
           <p className="text-sm text-muted-foreground mt-0.5">
             <span className="text-foreground font-medium">{exercise.sets}</span> Sätze ·{" "}
             <span className="text-foreground font-medium">{exercise.repsMin}–{exercise.repsMax}</span> Wdh
@@ -89,6 +94,10 @@ function ActiveExerciseCard({
         >
           <BarChart2 className="w-5 h-5" />
         </button>
+      </div>
+
+      <div className="px-3 pb-2">
+        <LastPerformancePreview exerciseId={exercise.id} />
       </div>
 
       <div className="flex items-center gap-2 px-3 pb-2">
@@ -120,17 +129,40 @@ function ActiveExerciseCard({
         </button>
       </div>
 
+      <div className="px-3 pb-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
+          {setsState.map((done, i) => (
+            <button
+              key={i}
+              onClick={() => onToggleSet(i)}
+              data-testid={`btn-set-${exercise.id}-${i}`}
+              className={`h-11 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold transition-all ${
+                done
+                  ? "bg-primary/20 text-primary border border-primary/40"
+                  : "bg-white/5 text-muted-foreground border border-white/10"
+              }`}
+            >
+              {done ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+              Satz {i + 1}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-1.5">
+          {completedSets}/{exercise.sets} Sätze abgehakt
+        </p>
+      </div>
+
       <div className="px-3 pb-3 space-y-2">
         <button
           onClick={onToggleReps}
           data-testid={`btn-toggle-reps-${exercise.id}`}
           className={`w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
-            state.repsAchieved
+            repsAchieved
               ? "bg-primary/15 text-primary border border-primary/30"
               : "bg-white/5 text-muted-foreground border border-white/10"
           }`}
         >
-          {state.repsAchieved
+          {repsAchieved
             ? <><CheckCircle2 className="w-5 h-5" /> Wiederholungen geschafft</>
             : <><Circle className="w-5 h-5" /> Wiederholungen geschafft?</>
           }
@@ -149,46 +181,127 @@ function ActiveExerciseCard({
   );
 }
 
+function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets, repsAchieved }: {
+  exercise: Exercise;
+  completed: boolean;
+  setsCompleted: number;
+  totalSets: number;
+  repsAchieved: boolean;
+}) {
+  return (
+    <div
+      data-testid={`collapsed-exercise-${exercise.id}`}
+      className={`rounded-2xl px-4 py-3 flex items-center gap-3 border ${
+        completed
+          ? "border-primary/20 bg-primary/5 opacity-60"
+          : "border-white/8 bg-white/5 opacity-50"
+      }`}
+    >
+      {completed ? (
+        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+      ) : (
+        <Circle className="w-5 h-5 text-muted-foreground/40 shrink-0" />
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm truncate">{exercise.name}</p>
+        {completed && (
+          <p className="text-xs text-muted-foreground">
+            {setsCompleted}/{totalSets} Sätze{repsAchieved ? " · Wdh ✓" : ""}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ActiveTraining() {
   const [selectedDayId, setSelectedDayId] = useState<number | null>(null);
-  const [exerciseStates, setExerciseStates] = useState<Record<number, ExerciseState>>({});
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [setsMap, setSetsMap] = useState<Record<number, boolean[]>>({});
+  const [repsMap, setRepsMap] = useState<Record<number, boolean>>({});
+  const [completedSet, setCompletedSet] = useState<Set<number>>(new Set());
   const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
+
+  const { toast } = useToast();
 
   const { data: allDays, isLoading } = useQuery<DayWithExercises[]>({
     queryKey: ["/api/all-training-days"],
   });
 
+  const logMutation = useMutation({
+    mutationFn: (data: { exerciseId: number; weight: number; setsCompleted: number; totalSets: number; repsAchieved: boolean }) =>
+      apiRequest("POST", "/api/workout-logs", data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercises", variables.exerciseId, "last-workout"] });
+    },
+  });
+
   const selectedDay = allDays?.find(d => d.id === selectedDayId);
 
-  const toggleReps = (exerciseId: number) => {
-    setExerciseStates(prev => ({
-      ...prev,
-      [exerciseId]: {
-        ...prev[exerciseId],
-        repsAchieved: !prev[exerciseId]?.repsAchieved,
-        completed: prev[exerciseId]?.completed ?? false,
-      },
-    }));
+  const initSetsForDay = (day: DayWithExercises) => {
+    const newSetsMap: Record<number, boolean[]> = {};
+    day.exercises.forEach(ex => {
+      newSetsMap[ex.id] = new Array(ex.sets).fill(false);
+    });
+    setSetsMap(newSetsMap);
+    setRepsMap({});
+    setCompletedSet(new Set());
+    setActiveIndex(0);
   };
 
-  const completeExercise = (exerciseId: number) => {
-    setExerciseStates(prev => ({
-      ...prev,
-      [exerciseId]: {
-        repsAchieved: prev[exerciseId]?.repsAchieved ?? false,
-        completed: true,
-      },
-    }));
+  const toggleSet = (exerciseId: number, setIndex: number) => {
+    setSetsMap(prev => {
+      const arr = [...(prev[exerciseId] || [])];
+      arr[setIndex] = !arr[setIndex];
+      return { ...prev, [exerciseId]: arr };
+    });
+  };
+
+  const toggleReps = (exerciseId: number) => {
+    setRepsMap(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
+  };
+
+  const completeExercise = (exercise: Exercise) => {
+    const sets = setsMap[exercise.id] || [];
+    const setsCompleted = sets.filter(Boolean).length;
+    const repsAchieved = repsMap[exercise.id] ?? false;
+
+    logMutation.mutate({
+      exerciseId: exercise.id,
+      weight: exercise.weight,
+      setsCompleted,
+      totalSets: exercise.sets,
+      repsAchieved,
+    });
+
+    setCompletedSet(prev => {
+      const next = new Set(prev);
+      next.add(exercise.id);
+      return next;
+    });
+
+    if (selectedDay) {
+      const nextIdx = activeIndex + 1;
+      if (nextIdx < selectedDay.exercises.length) {
+        setActiveIndex(nextIdx);
+      }
+    }
   };
 
   const startTraining = (dayId: number) => {
-    setSelectedDayId(dayId);
-    setExerciseStates({});
+    const day = allDays?.find(d => d.id === dayId);
+    if (day) {
+      setSelectedDayId(dayId);
+      initSetsForDay(day);
+    }
   };
 
   const endTraining = () => {
     setSelectedDayId(null);
-    setExerciseStates({});
+    setSetsMap({});
+    setRepsMap({});
+    setCompletedSet(new Set());
+    setActiveIndex(0);
   };
 
   if (isLoading) {
@@ -243,7 +356,7 @@ export function ActiveTraining() {
   }
 
   const totalExercises = selectedDay.exercises.length;
-  const completedCount = selectedDay.exercises.filter(ex => exerciseStates[ex.id]?.completed).length;
+  const completedCount = completedSet.size;
   const allDone = completedCount === totalExercises && totalExercises > 0;
 
   return (
@@ -283,17 +396,37 @@ export function ActiveTraining() {
           </Button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {selectedDay.exercises.map(ex => (
-            <ActiveExerciseCard
-              key={ex.id}
-              exercise={ex}
-              state={exerciseStates[ex.id] ?? { repsAchieved: false, completed: false }}
-              onToggleReps={() => toggleReps(ex.id)}
-              onComplete={() => completeExercise(ex.id)}
-              onChartOpen={setChartExercise}
-            />
-          ))}
+        <div className="space-y-2">
+          {selectedDay.exercises.map((ex, idx) => {
+            const isActive = idx === activeIndex && !completedSet.has(ex.id);
+            const isCompleted = completedSet.has(ex.id);
+
+            if (isActive) {
+              return (
+                <ExpandedExerciseCard
+                  key={ex.id}
+                  exercise={ex}
+                  setsState={setsMap[ex.id] || new Array(ex.sets).fill(false)}
+                  repsAchieved={repsMap[ex.id] ?? false}
+                  onToggleSet={(setIdx) => toggleSet(ex.id, setIdx)}
+                  onToggleReps={() => toggleReps(ex.id)}
+                  onComplete={() => completeExercise(ex)}
+                  onChartOpen={setChartExercise}
+                />
+              );
+            }
+
+            return (
+              <CollapsedExerciseCard
+                key={ex.id}
+                exercise={ex}
+                completed={isCompleted}
+                setsCompleted={(setsMap[ex.id] || []).filter(Boolean).length}
+                totalSets={ex.sets}
+                repsAchieved={repsMap[ex.id] ?? false}
+              />
+            );
+          })}
         </div>
       )}
 

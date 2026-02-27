@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link, useLocation } from "wouter";
 import {
-  Dumbbell, ClipboardList, Calendar,
+  Dumbbell, ClipboardList, ListChecks,
   BarChart2, User as UserIcon
 } from "lucide-react";
 
@@ -11,7 +11,7 @@ function BottomNav() {
 
   const tabs = [
     { href: "/plans", icon: ClipboardList, label: "Pläne" },
-    { href: "/days", icon: Calendar, label: "Tage" },
+    { href: "/exercises", icon: ListChecks, label: "Übungen" },
     { href: "/training", icon: Dumbbell, label: "Training", isCenter: true },
     { href: "/analytics", icon: BarChart2, label: "Statistik" },
     { href: "/profile", icon: UserIcon, label: "Profil" },
