@@ -25,6 +25,9 @@ function EditTemplateDialog({ template, onClose }: { template: ExerciseTemplate;
       apiRequest("PATCH", `/api/exercise-templates/${template.id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercise-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       toast({ title: "Übung aktualisiert" });
       onClose();
     },

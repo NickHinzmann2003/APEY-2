@@ -125,6 +125,22 @@ export class DatabaseStorage implements IStorage {
       .set(data)
       .where(and(eq(exerciseTemplates.id, id), eq(exerciseTemplates.userId, userId)))
       .returning();
+
+    if (template) {
+      const exerciseUpdate: Record<string, any> = {};
+      if (data.defaultSets !== undefined) exerciseUpdate.sets = data.defaultSets;
+      if (data.defaultRepsMin !== undefined) exerciseUpdate.repsMin = data.defaultRepsMin;
+      if (data.defaultRepsMax !== undefined) exerciseUpdate.repsMax = data.defaultRepsMax;
+      if (data.defaultWeight !== undefined) exerciseUpdate.weight = data.defaultWeight;
+      if (data.defaultIncrement !== undefined) exerciseUpdate.increment = data.defaultIncrement;
+
+      if (Object.keys(exerciseUpdate).length > 0) {
+        await db.update(exercises)
+          .set(exerciseUpdate)
+          .where(eq(exercises.exerciseTemplateId, id));
+      }
+    }
+
     return template;
   }
 
