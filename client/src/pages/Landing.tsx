@@ -1,5 +1,6 @@
 import { Link } from "wouter";
-import { Zap, ArrowRight, Activity, CalendarCheck, Trophy } from "lucide-react";
+import { ArrowRight, Activity, CalendarCheck, Trophy } from "lucide-react";
+import { ApexLogo } from "@/components/icons/ApexLogo";
 
 export function Landing() {
   return (
@@ -7,7 +8,7 @@ export function Landing() {
       {/* Navbar */}
       <nav className="absolute top-0 left-0 w-full z-50 p-6 md:p-8 flex justify-between items-center">
         <div className="flex items-center gap-2 text-primary">
-          <Zap className="h-8 w-8" />
+          <ApexLogo className="h-10 w-10" />
           <span className="font-display font-bold text-2xl tracking-wider uppercase text-white">
             APEX <span className="text-primary">by Nick</span>
           </span>

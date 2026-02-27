@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CATEGORIES } from "@shared/schema";
-import { Loader2, TrendingUp, TrendingDown, Minus, BarChart2, ArrowLeft, Zap, Calendar, ChevronRight, ChevronDown, Activity } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown, Minus, BarChart2, ArrowLeft, Calendar, ChevronRight, ChevronDown, Activity } from "lucide-react";
+import { AngularDumbbell } from "@/components/icons/AngularDumbbell";
 import { Button } from "@/components/ui/button";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -156,7 +157,7 @@ function ExerciseDetail({ templateId, onBack }: { templateId: number; onBack: ()
         <div className="border border-white/10 rounded-2xl bg-white/5 p-3.5">
           <p className="text-xs text-muted-foreground mb-1">Trainings</p>
           <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-primary" />
+            <AngularDumbbell className="w-5 h-5 text-primary" />
             <span className="font-display text-2xl font-bold" data-testid="text-total-workouts">{data.totalWorkouts}</span>
           </div>
         </div>

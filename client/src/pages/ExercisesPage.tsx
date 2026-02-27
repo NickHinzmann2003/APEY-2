@@ -5,7 +5,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2, Zap, X, Trash2, ChevronDown, ChevronRight, Minus, Pencil } from "lucide-react";
+import { Plus, Loader2, X, Trash2, ChevronDown, ChevronRight, Minus, Pencil } from "lucide-react";
+import { AngularDumbbell } from "@/components/icons/AngularDumbbell";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/training";
@@ -206,7 +207,7 @@ export function ExercisesPage() {
 
       {isEmpty && !isAdding ? (
         <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <Zap className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+          <AngularDumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
           <h3 className="text-lg font-display font-semibold mb-2">Noch keine Übungen</h3>
           <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
             Lege Übungen an, die du dann in deinen Trainingstagen verwenden kannst.
@@ -219,7 +220,7 @@ export function ExercisesPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-base font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
-              <Zap className="w-4 h-4" />
+              <AngularDumbbell className="w-4 h-4" />
               Bibliothek
             </h2>
             {!isAdding && (
@@ -303,7 +304,7 @@ export function ExercisesPage() {
                       >
                         <div className="flex-1 min-w-0" onClick={() => setEditingTemplate(t)} role="button">
                           <div className="flex items-center gap-3">
-                            <Zap className="w-4 h-4 text-primary shrink-0" />
+                            <AngularDumbbell className="w-4 h-4 text-primary shrink-0" />
                             <span className="font-medium text-sm truncate" data-testid={`text-template-name-${t.id}`}>{t.name}</span>
                           </div>
                           <div className="flex items-center gap-1.5 ml-7 mt-0.5 flex-wrap">
@@ -350,7 +351,7 @@ export function ExercisesPage() {
                   >
                     <div className="flex-1 min-w-0" onClick={() => setEditingTemplate(t)} role="button">
                       <div className="flex items-center gap-3">
-                        <Zap className="w-4 h-4 text-primary shrink-0" />
+                        <AngularDumbbell className="w-4 h-4 text-primary shrink-0" />
                         <span className="font-medium text-sm truncate" data-testid={`text-template-name-${t.id}`}>{t.name}</span>
                       </div>
                       <div className="flex items-center gap-1.5 ml-7 mt-0.5 flex-wrap">
