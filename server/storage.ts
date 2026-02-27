@@ -30,6 +30,44 @@ export type AnalyticsItem = {
   percentChange: number;
 };
 
+export type ExerciseDetailAnalytics = {
+  templateId: number;
+  exerciseName: string;
+  category: string | null;
+  totalWorkouts: number;
+  currentWeight: number;
+  oldWeight: number;
+  percentChange: number;
+  weightHistory: { date: string; weight: number }[];
+};
+
+function getPeriodRange(period?: string): { start: Date | null; end: Date | null } {
+  const now = new Date();
+  switch (period) {
+    case "this_month":
+      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: null };
+    case "last_month": {
+      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      return { start: s, end: e };
+    }
+    case "this_year":
+      return { start: new Date(now.getFullYear(), 0, 1), end: null };
+    case "last_year": {
+      const s = new Date(now.getFullYear() - 1, 0, 1);
+      const e = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+      return { start: s, end: e };
+    }
+    case "all":
+      return { start: null, end: null };
+    default: {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      return { start: d, end: null };
+    }
+  }
+}
+
 export interface IStorage {
   getExerciseTemplates(userId: string): Promise<ExerciseTemplate[]>;
   createExerciseTemplate(userId: string, data: InsertExerciseTemplate): Promise<ExerciseTemplate>;
@@ -56,7 +94,8 @@ export interface IStorage {
   createWorkoutLog(data: InsertWorkoutLog, userId: string): Promise<WorkoutLog | undefined>;
 
   getTrainingStatus(userId: string): Promise<TrainingStatus>;
-  getAnalyticsData(userId: string): Promise<AnalyticsItem[]>;
+  getAnalyticsData(userId: string, period?: string): Promise<AnalyticsItem[]>;
+  getExerciseDetailAnalytics(userId: string, templateId: number, period?: string): Promise<ExerciseDetailAnalytics>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -346,7 +385,9 @@ export class DatabaseStorage implements IStorage {
     return { lastTrainedByPlan, suggestedDay };
   }
 
-  async getAnalyticsData(userId: string): Promise<AnalyticsItem[]> {
+  async getAnalyticsData(userId: string, period?: string): Promise<AnalyticsItem[]> {
+    const { start, end } = getPeriodRange(period);
+
     const allDays = await db.query.trainingDays.findMany({
       where: eq(trainingDays.userId, userId),
       with: { exercises: true }
@@ -365,19 +406,23 @@ export class DatabaseStorage implements IStorage {
       historyByExercise.get(h.exerciseId)!.push(h);
     }
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
     const rawItems = allDays.flatMap(day =>
       day.exercises.map(ex => {
         const history = (historyByExercise.get(ex.id) || [])
           .sort((a, b) => new Date(a.recordedAt!).getTime() - new Date(b.recordedAt!).getTime());
 
-        const oldEntry = history.find(h =>
-          h.recordedAt && new Date(h.recordedAt) <= thirtyDaysAgo
-        ) || history[0];
+        const filteredHistory = history.filter(h => {
+          if (!h.recordedAt) return false;
+          const d = new Date(h.recordedAt);
+          if (start && d < start) return false;
+          if (end && d > end) return false;
+          return true;
+        });
 
-        const currentWeight = ex.weight;
+        const oldEntry = filteredHistory[0] || history[0];
+        const latestEntry = filteredHistory.length > 0 ? filteredHistory[filteredHistory.length - 1] : null;
+
+        const currentWeight = latestEntry?.weight ?? ex.weight;
         const oldWeight = oldEntry?.weight ?? currentWeight;
         const percentChange = oldWeight > 0
           ? Math.round(((currentWeight - oldWeight) / oldWeight) * 1000) / 10
@@ -405,6 +450,79 @@ export class DatabaseStorage implements IStorage {
     }
 
     return Array.from(grouped.values());
+  }
+
+  async getExerciseDetailAnalytics(userId: string, templateId: number, period?: string): Promise<ExerciseDetailAnalytics> {
+    const { start, end } = getPeriodRange(period);
+
+    const template = await db.select().from(exerciseTemplates)
+      .where(and(eq(exerciseTemplates.id, templateId), eq(exerciseTemplates.userId, userId)))
+      .then(r => r[0]);
+
+    if (!template) throw new Error("Template not found");
+
+    const allDays = await db.query.trainingDays.findMany({
+      where: eq(trainingDays.userId, userId),
+      with: { exercises: true }
+    });
+
+    const matchingExerciseIds = allDays
+      .flatMap(d => d.exercises)
+      .filter(e => e.exerciseTemplateId === templateId)
+      .map(e => e.id);
+
+    if (matchingExerciseIds.length === 0) {
+      return {
+        templateId, exerciseName: template.name, category: template.category,
+        totalWorkouts: 0, currentWeight: 0, oldWeight: 0, percentChange: 0, weightHistory: []
+      };
+    }
+
+    const logs = await db.select().from(workoutLogs)
+      .where(inArray(workoutLogs.exerciseId, matchingExerciseIds));
+
+    const filteredLogs = logs.filter(l => {
+      if (!l.completedAt) return false;
+      const d = new Date(l.completedAt);
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+
+    const allHist = await db.select().from(weightHistory)
+      .where(inArray(weightHistory.exerciseId, matchingExerciseIds));
+
+    const filteredHist = allHist
+      .filter(h => {
+        if (!h.recordedAt) return false;
+        const d = new Date(h.recordedAt);
+        if (start && d < start) return false;
+        if (end && d > end) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.recordedAt!).getTime() - new Date(b.recordedAt!).getTime());
+
+    const histEntries = filteredHist.map(h => ({
+      date: new Date(h.recordedAt!).toISOString(),
+      weight: h.weight,
+    }));
+
+    const currentWeight = filteredHist.length > 0 ? filteredHist[filteredHist.length - 1].weight : 0;
+    const oldWeight = filteredHist.length > 0 ? filteredHist[0].weight : 0;
+    const percentChange = oldWeight > 0
+      ? Math.round(((currentWeight - oldWeight) / oldWeight) * 1000) / 10
+      : 0;
+
+    return {
+      templateId,
+      exerciseName: template.name,
+      category: template.category,
+      totalWorkouts: filteredLogs.length,
+      currentWeight,
+      oldWeight,
+      percentChange,
+      weightHistory: histEntries,
+    };
   }
 }
 

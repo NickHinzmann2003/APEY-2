@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Exercise, WorkoutLog } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTraining } from "@/hooks/use-training";
 import {
   Dumbbell, Loader2, Minus, Plus,
-  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock, Play
+  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock, Play, RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DayWithExercises, WeightHistoryDialog } from "@/components/training";
@@ -31,7 +32,6 @@ function LastPerformancePreview({ exerciseId }: { exerciseId: number }) {
         Letztes Mal: <span className="text-foreground font-medium">{lastLog.weight} kg</span>
         {" · "}
         <span className="text-foreground font-medium">{lastLog.setsCompleted}/{lastLog.totalSets}</span> Sätze
-        {lastLog.repsAchieved && <span className="text-primary"> · Wdh ✓</span>}
       </span>
     </div>
   );
@@ -165,11 +165,12 @@ function ExpandedExerciseCard({
   );
 }
 
-function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets }: {
+function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets, onGoBack }: {
   exercise: Exercise;
   completed: boolean;
   setsCompleted: number;
   totalSets: number;
+  onGoBack?: () => void;
 }) {
   return (
     <div
@@ -193,15 +194,24 @@ function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets }
           </p>
         )}
       </div>
+      {completed && onGoBack && (
+        <button
+          onClick={onGoBack}
+          className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-primary active:bg-primary/10 shrink-0"
+          data-testid={`btn-goback-${exercise.id}`}
+        >
+          <RotateCcw className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }
 
 export function ActiveTraining() {
-  const [selectedDayId, setSelectedDayId] = useState<number | null>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [setsMap, setSetsMap] = useState<Record<number, boolean[]>>({});
-  const [completedSet, setCompletedSet] = useState<Set<number>>(new Set());
+  const training = useTraining();
+  const { state, setSelectedDayId, setActiveIndex, setSetsMap, setCompletedSet, initSetsForDay, endTraining } = training;
+  const { selectedDayId, activeIndex, setsMap, completedSet } = state;
+
   const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
   const [initialized, setInitialized] = useState(false);
 
@@ -235,25 +245,15 @@ export function ActiveTraining() {
       const day = allDays.find(d => d.id === dayId);
       if (day) {
         setSelectedDayId(dayId);
-        initSetsForDay(day);
+        initSetsForDay(day.exercises);
       }
       window.history.replaceState({}, "", "/training");
     }
     setInitialized(true);
   }, [allDays, initialized]);
 
-  const initSetsForDay = (day: DayWithExercises) => {
-    const newSetsMap: Record<number, boolean[]> = {};
-    day.exercises.forEach(ex => {
-      newSetsMap[ex.id] = new Array(ex.sets).fill(false);
-    });
-    setSetsMap(newSetsMap);
-    setCompletedSet(new Set());
-    setActiveIndex(0);
-  };
-
   const toggleSet = (exerciseId: number, setIndex: number) => {
-    setSetsMap(prev => {
+    setSetsMap((prev: Record<number, boolean[]>) => {
       const arr = [...(prev[exerciseId] || [])];
       arr[setIndex] = !arr[setIndex];
       return { ...prev, [exerciseId]: arr };
@@ -272,7 +272,7 @@ export function ActiveTraining() {
       repsAchieved: false,
     });
 
-    setCompletedSet(prev => {
+    setCompletedSet((prev: Set<number>) => {
       const next = new Set(prev);
       next.add(exercise.id);
       return next;
@@ -286,19 +286,28 @@ export function ActiveTraining() {
     }
   };
 
+  const goBackToExercise = (exerciseId: number) => {
+    if (!selectedDay) return;
+    const idx = selectedDay.exercises.findIndex(e => e.id === exerciseId);
+    if (idx === -1) return;
+    setCompletedSet((prev: Set<number>) => {
+      const next = new Set(prev);
+      next.delete(exerciseId);
+      return next;
+    });
+    setSetsMap((prev: Record<number, boolean[]>) => ({
+      ...prev,
+      [exerciseId]: new Array(selectedDay.exercises[idx].sets).fill(false),
+    }));
+    setActiveIndex(idx);
+  };
+
   const startTraining = (dayId: number) => {
     const day = allDays?.find(d => d.id === dayId);
     if (day) {
       setSelectedDayId(dayId);
-      initSetsForDay(day);
+      initSetsForDay(day.exercises);
     }
-  };
-
-  const endTraining = () => {
-    setSelectedDayId(null);
-    setSetsMap({});
-    setCompletedSet(new Set());
-    setActiveIndex(0);
   };
 
   const isLoading = daysLoading || statusLoading;
@@ -422,6 +431,7 @@ export function ActiveTraining() {
                 completed={isCompleted}
                 setsCompleted={(setsMap[ex.id] || []).filter(Boolean).length}
                 totalSets={ex.sets}
+                onGoBack={isCompleted ? () => goBackToExercise(ex.id) : undefined}
               />
             );
           })}

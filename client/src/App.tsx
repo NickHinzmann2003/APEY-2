@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import { TrainingProvider } from "@/hooks/use-training";
 import { Loader2 } from "lucide-react";
 import NotFound from "@/pages/not-found";
 import { Shell } from "@/components/layout/Shell";
@@ -17,19 +18,21 @@ import { Profile } from "@/pages/Profile";
 
 function AuthenticatedApp() {
   return (
-    <Shell>
-      <Switch>
-        <Route path="/">
-          <Redirect to="/plans" />
-        </Route>
-        <Route path="/plans" component={PlansPage} />
-        <Route path="/exercises" component={ExercisesPage} />
-        <Route path="/training" component={ActiveTraining} />
-        <Route path="/analytics" component={Analytics} />
-        <Route path="/profile" component={Profile} />
-        <Route component={NotFound} />
-      </Switch>
-    </Shell>
+    <TrainingProvider>
+      <Shell>
+        <Switch>
+          <Route path="/">
+            <Redirect to="/plans" />
+          </Route>
+          <Route path="/plans" component={PlansPage} />
+          <Route path="/exercises" component={ExercisesPage} />
+          <Route path="/training" component={ActiveTraining} />
+          <Route path="/analytics" component={Analytics} />
+          <Route path="/profile" component={Profile} />
+          <Route component={NotFound} />
+        </Switch>
+      </Shell>
+    </TrainingProvider>
   );
 }
 

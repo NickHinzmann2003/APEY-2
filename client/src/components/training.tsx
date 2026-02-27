@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   TrainingPlan, TrainingDay, Exercise, WeightHistory,
-  ExerciseTemplate, InsertExercise
+  ExerciseTemplate, InsertExercise, DEFAULT_CATEGORIES
 } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -217,6 +217,73 @@ export function ExerciseRow({ exercise, onChartOpen, onEdit }: { exercise: Exerc
   );
 }
 
+function TemplateCategoryPicker({ grouped, uncategorized, onSelect }: {
+  grouped: Map<string, ExerciseTemplate[]>;
+  uncategorized: ExerciseTemplate[];
+  onSelect: (id: number) => void;
+}) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const toggle = (cat: string) => setCollapsed(prev => {
+    const next = new Set(prev);
+    if (next.has(cat)) next.delete(cat);
+    else next.add(cat);
+    return next;
+  });
+
+  return (
+    <div className="space-y-1 max-h-72 overflow-y-auto">
+      {Array.from(grouped.entries()).map(([cat, items]) => {
+        if (items.length === 0) return null;
+        const isCollapsed = collapsed.has(cat);
+        return (
+          <div key={cat}>
+            <button
+              onClick={() => toggle(cat)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg active:bg-white/5 transition-colors"
+              data-testid={`btn-picker-cat-${cat}`}
+            >
+              <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{cat}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground/50">{items.length}</span>
+                {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+              </div>
+            </button>
+            {!isCollapsed && items.map(t => (
+              <button
+                key={t.id}
+                onClick={() => onSelect(t.id)}
+                data-testid={`btn-pick-template-${t.id}`}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-white/10 text-left transition-colors"
+              >
+                <Plus className="w-4 h-4 text-primary shrink-0" />
+                <span className="font-medium text-sm truncate">{t.name}</span>
+              </button>
+            ))}
+          </div>
+        );
+      })}
+      {uncategorized.length > 0 && (
+        <div>
+          <div className="px-3 py-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Sonstige</span>
+          </div>
+          {uncategorized.map(t => (
+            <button
+              key={t.id}
+              onClick={() => onSelect(t.id)}
+              data-testid={`btn-pick-template-${t.id}`}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl active:bg-white/10 text-left transition-colors"
+            >
+              <Plus className="w-4 h-4 text-primary shrink-0" />
+              <span className="font-medium text-sm truncate">{t.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   trainingDayId: number;
   exerciseCount: number;
@@ -264,6 +331,17 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   };
 
   if (!selectedTemplateId) {
+    const allCats = [...DEFAULT_CATEGORIES] as string[];
+    templates?.forEach(t => { if (t.category && !allCats.includes(t.category)) allCats.push(t.category); });
+    const grouped = new Map<string, ExerciseTemplate[]>();
+    for (const c of allCats) grouped.set(c, []);
+    const uncategorized: ExerciseTemplate[] = [];
+    templates?.forEach(t => {
+      if (t.category && grouped.has(t.category)) grouped.get(t.category)!.push(t);
+      else if (t.category) { if (!grouped.has(t.category)) grouped.set(t.category, []); grouped.get(t.category)!.push(t); }
+      else uncategorized.push(t);
+    });
+
     return (
       <div className="p-4 border border-primary/20 rounded-2xl bg-primary/5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
         <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Übung wählen</Label>
@@ -273,19 +351,11 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
             <p className="mt-1">Erstelle zuerst Übungen im Tab "Übungen".</p>
           </div>
         ) : (
-          <div className="space-y-1.5 max-h-64 overflow-y-auto">
-            {templates.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setSelectedTemplateId(t.id)}
-                data-testid={`btn-pick-template-${t.id}`}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-background border border-white/10 active:bg-white/10 text-left transition-colors"
-              >
-                <Plus className="w-4 h-4 text-primary shrink-0" />
-                <span className="font-medium text-base truncate">{t.name}</span>
-              </button>
-            ))}
-          </div>
+          <TemplateCategoryPicker
+            grouped={grouped}
+            uncategorized={uncategorized}
+            onSelect={(id) => setSelectedTemplateId(id)}
+          />
         )}
         <Button variant="ghost" className="w-full h-10 mt-2" onClick={onDone} data-testid="btn-cancel-pick-template">Abbrechen</Button>
       </div>

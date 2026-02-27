@@ -15,7 +15,7 @@ Preferred communication style: Simple, everyday language.
 ### Frontend (client/)
 - **Framework**: React 18 with TypeScript
 - **Routing**: Wouter (lightweight client-side router)
-- **State Management**: TanStack React Query for server state, local React state for UI
+- **State Management**: TanStack React Query for server state, React Context for training session state (persists across tab navigation), local React state for UI
 - **UI Components**: shadcn/ui (new-york style) built on Radix UI primitives
 - **Styling**: Tailwind CSS with CSS variables for theming, dark mode by default
 - **Build Tool**: Vite with HMR support
@@ -27,7 +27,7 @@ The frontend has a tab-based layout with bottom navigation for authenticated use
 - **Plans page** (`/plans`) - Manage training plans with collapsible days and exercises
 - **Exercises page** (`/exercises`) - Exercise template library (CRUD); exercises are created here, then selected when adding to training days
 - **Active Training page** (`/training`) - Select a training day, then work through exercises one at a time with per-set checkmarks, last-performance preview, auto-advance on completion, and workout log persistence
-- **Analytics page** (`/analytics`) - View percentage weight changes over the past 30 days per exercise, deduplicated by exercise template
+- **Analytics page** (`/analytics`) - View percentage weight changes over the past 30 days per exercise, deduplicated by exercise template, with clickable exercises leading to detailed dashboard with time period filters and weight progression charts
 - **Profile page** (`/profile`) - User info and logout
 
 **Key Frontend Files:**

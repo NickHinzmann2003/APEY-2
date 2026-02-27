@@ -6,10 +6,13 @@ import { z } from "zod";
 export * from "./models/auth";
 import { users } from "./models/auth";
 
+export const DEFAULT_CATEGORIES = ["Brust", "Rücken", "Arme", "Beine", "Bauch"] as const;
+
 export const exerciseTemplates = pgTable("exercise_templates", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
+  category: text("category"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -144,8 +144,21 @@ export async function registerRoutes(
 
   app.get("/api/analytics", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
-    const data = await storage.getAnalyticsData(userId);
+    const period = req.query.period as string | undefined;
+    const data = await storage.getAnalyticsData(userId, period);
     res.json(data);
+  });
+
+  app.get("/api/analytics/exercise/:templateId", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const templateId = Number(req.params.templateId);
+    const period = req.query.period as string | undefined;
+    try {
+      const data = await storage.getExerciseDetailAnalytics(userId, templateId, period);
+      res.json(data);
+    } catch {
+      res.status(404).json({ message: "Übung nicht gefunden" });
+    }
   });
 
   return httpServer;

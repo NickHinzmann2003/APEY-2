@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useTraining } from "@/hooks/use-training";
 import { Link, useLocation } from "wouter";
 import {
   Dumbbell, ClipboardList, ListChecks,
@@ -8,6 +9,7 @@ import {
 
 function BottomNav() {
   const [location] = useLocation();
+  const { isTrainingActive } = useTraining();
 
   const tabs = [
     { href: "/plans", icon: ClipboardList, label: "Pläne" },
@@ -32,12 +34,17 @@ function BottomNav() {
                 data-testid="nav-training"
                 className="flex flex-col items-center justify-center -mt-4"
               >
-                <div className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors ${
+                <div className={`relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-colors ${
                   isActive
                     ? "bg-primary text-primary-foreground shadow-primary/30"
-                    : "bg-white/10 text-muted-foreground"
+                    : isTrainingActive
+                      ? "bg-primary/30 text-primary shadow-primary/20"
+                      : "bg-white/10 text-muted-foreground"
                 }`}>
                   <Icon className="w-7 h-7" />
+                  {isTrainingActive && !isActive && (
+                    <span className="absolute top-0 right-0 w-3 h-3 bg-primary rounded-full animate-pulse" />
+                  )}
                 </div>
                 <span className={`text-[10px] mt-0.5 font-semibold ${isActive ? "text-primary" : "text-muted-foreground"}`}>
                   {tab.label}
