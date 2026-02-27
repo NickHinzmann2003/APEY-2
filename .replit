@@ -41,3 +41,8 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_log_in_with_replit:2.0.0"]
+
+[userenv]
+
+[userenv.shared]
+DATABASE_URL = "postgresql://apey_datenbank_user:g25p7Gp0c6q0IxCCFbTzFsvC952awOpU@dpg-d6gto3tm5p6s73bad250-a.oregon-postgres.render.com/apey_datenbank"

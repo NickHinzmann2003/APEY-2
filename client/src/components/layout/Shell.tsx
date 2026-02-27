@@ -22,7 +22,7 @@ function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
-      <div className="flex items-end justify-around gap-1 max-w-2xl mx-auto h-16 px-2 pb-1">
+      <div className="flex items-end justify-around gap-1 max-w-2xl mx-auto h-[4.5rem] px-2 pb-2">
         {tabs.map(tab => {
           const isActive = location === tab.href || (tab.href === "/plans" && location === "/");
           const Icon = tab.icon;
@@ -69,7 +69,7 @@ function BottomNav() {
           );
         })}
       </div>
-      <div className="h-[env(safe-area-inset-bottom)]" />
+      <div className="h-[max(env(safe-area-inset-bottom),0.5rem)]" />
     </nav>
   );
 }
