@@ -2,8 +2,10 @@ import { db } from "./db";
 import {
   exerciseTemplates, trainingPlans, trainingDays, exercises, weightHistory, workoutLogs,
   type ExerciseTemplate, type TrainingPlan, type TrainingDay, type Exercise, type WeightHistory, type WorkoutLog,
-  type InsertExerciseTemplate, type InsertTrainingPlan, type InsertTrainingDay, type InsertExercise, type InsertWorkoutLog
+  type InsertExerciseTemplate, type InsertTrainingPlan, type InsertTrainingDay, type InsertExercise, type InsertWorkoutLog,
+  DEFAULT_CATEGORIES
 } from "@shared/schema";
+import { users } from "@shared/models/auth";
 import { eq, and, isNull, inArray, desc } from "drizzle-orm";
 
 export type TrainingDayWithExercises = TrainingDay & { exercises: Exercise[] };
@@ -25,9 +27,16 @@ export type AnalyticsItem = {
   exerciseName: string;
   dayName: string;
   templateId: number | null;
+  category: string | null;
   currentWeight: number;
   oldWeight: number;
   percentChange: number;
+};
+
+export type AnalyticsOverview = {
+  totalTrainingDays: number;
+  totalSets: number;
+  items: AnalyticsItem[];
 };
 
 export type ExerciseDetailAnalytics = {
@@ -44,8 +53,6 @@ export type ExerciseDetailAnalytics = {
 function getPeriodRange(period?: string): { start: Date | null; end: Date | null } {
   const now = new Date();
   switch (period) {
-    case "this_month":
-      return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: null };
     case "last_month": {
       const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const e = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
@@ -71,6 +78,7 @@ function getPeriodRange(period?: string): { start: Date | null; end: Date | null
 export interface IStorage {
   getExerciseTemplates(userId: string): Promise<ExerciseTemplate[]>;
   createExerciseTemplate(userId: string, data: InsertExerciseTemplate): Promise<ExerciseTemplate>;
+  updateExerciseTemplate(id: number, userId: string, data: Partial<InsertExerciseTemplate>): Promise<ExerciseTemplate | undefined>;
   deleteExerciseTemplate(id: number, userId: string): Promise<void>;
 
   getTrainingPlans(userId: string): Promise<TrainingPlanWithDays[]>;
@@ -94,8 +102,10 @@ export interface IStorage {
   createWorkoutLog(data: InsertWorkoutLog, userId: string): Promise<WorkoutLog | undefined>;
 
   getTrainingStatus(userId: string): Promise<TrainingStatus>;
-  getAnalyticsData(userId: string, period?: string): Promise<AnalyticsItem[]>;
+  getAnalyticsData(userId: string, period?: string): Promise<AnalyticsOverview>;
   getExerciseDetailAnalytics(userId: string, templateId: number, period?: string): Promise<ExerciseDetailAnalytics>;
+
+  deleteAllUserData(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -107,6 +117,14 @@ export class DatabaseStorage implements IStorage {
 
   async createExerciseTemplate(userId: string, data: InsertExerciseTemplate): Promise<ExerciseTemplate> {
     const [template] = await db.insert(exerciseTemplates).values({ ...data, userId }).returning();
+    return template;
+  }
+
+  async updateExerciseTemplate(id: number, userId: string, data: Partial<InsertExerciseTemplate>): Promise<ExerciseTemplate | undefined> {
+    const [template] = await db.update(exerciseTemplates)
+      .set(data)
+      .where(and(eq(exerciseTemplates.id, id), eq(exerciseTemplates.userId, userId)))
+      .returning();
     return template;
   }
 
@@ -385,7 +403,7 @@ export class DatabaseStorage implements IStorage {
     return { lastTrainedByPlan, suggestedDay };
   }
 
-  async getAnalyticsData(userId: string, period?: string): Promise<AnalyticsItem[]> {
+  async getAnalyticsData(userId: string, period?: string): Promise<AnalyticsOverview> {
     const { start, end } = getPeriodRange(period);
 
     const allDays = await db.query.trainingDays.findMany({
@@ -394,11 +412,42 @@ export class DatabaseStorage implements IStorage {
     });
 
     const allExerciseIds = allDays.flatMap(d => d.exercises.map(e => e.id));
-    if (allExerciseIds.length === 0) return [];
+    if (allExerciseIds.length === 0) return { totalTrainingDays: 0, totalSets: 0, items: [] };
 
     const allHistory = await db.select()
       .from(weightHistory)
       .where(inArray(weightHistory.exerciseId, allExerciseIds));
+
+    const allLogs = await db.select()
+      .from(workoutLogs)
+      .where(inArray(workoutLogs.exerciseId, allExerciseIds));
+
+    const filteredLogs = allLogs.filter(l => {
+      if (!l.completedAt) return false;
+      const d = new Date(l.completedAt);
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+
+    const trainingDayDates = new Set<string>();
+    let totalSets = 0;
+    for (const log of filteredLogs) {
+      if (log.completedAt) {
+        trainingDayDates.add(new Date(log.completedAt).toISOString().slice(0, 10));
+      }
+      totalSets += log.setsCompleted;
+    }
+
+    const templateMap = new Map<number, ExerciseTemplate>();
+    const allTemplateIds = allDays.flatMap(d => d.exercises.filter(e => e.exerciseTemplateId).map(e => e.exerciseTemplateId!));
+    if (allTemplateIds.length > 0) {
+      const templates = await db.select().from(exerciseTemplates)
+        .where(inArray(exerciseTemplates.id, [...new Set(allTemplateIds)]));
+      for (const t of templates) {
+        templateMap.set(t.id, t);
+      }
+    }
 
     const historyByExercise = new Map<number, (typeof allHistory)[number][]>();
     for (const h of allHistory) {
@@ -428,11 +477,14 @@ export class DatabaseStorage implements IStorage {
           ? Math.round(((currentWeight - oldWeight) / oldWeight) * 1000) / 10
           : 0;
 
+        const template = ex.exerciseTemplateId ? templateMap.get(ex.exerciseTemplateId) : null;
+
         return {
           exerciseId: ex.id,
           exerciseName: ex.name,
           dayName: day.name,
           templateId: ex.exerciseTemplateId,
+          category: template?.category || null,
           currentWeight,
           oldWeight,
           percentChange,
@@ -449,7 +501,11 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    return Array.from(grouped.values());
+    return {
+      totalTrainingDays: trainingDayDates.size,
+      totalSets,
+      items: Array.from(grouped.values()),
+    };
   }
 
   async getExerciseDetailAnalytics(userId: string, templateId: number, period?: string): Promise<ExerciseDetailAnalytics> {
@@ -523,6 +579,22 @@ export class DatabaseStorage implements IStorage {
       percentChange,
       weightHistory: histEntries,
     };
+  }
+
+  async deleteAllUserData(userId: string): Promise<void> {
+    const allDays = await db.select().from(trainingDays).where(eq(trainingDays.userId, userId));
+    for (const day of allDays) {
+      const exs = await db.select().from(exercises).where(eq(exercises.trainingDayId, day.id));
+      for (const ex of exs) {
+        await db.delete(workoutLogs).where(eq(workoutLogs.exerciseId, ex.id));
+        await db.delete(weightHistory).where(eq(weightHistory.exerciseId, ex.id));
+      }
+      await db.delete(exercises).where(eq(exercises.trainingDayId, day.id));
+    }
+    await db.delete(trainingDays).where(eq(trainingDays.userId, userId));
+    await db.delete(trainingPlans).where(eq(trainingPlans.userId, userId));
+    await db.delete(exerciseTemplates).where(eq(exerciseTemplates.userId, userId));
+    await db.delete(users).where(eq(users.id, userId));
   }
 }
 

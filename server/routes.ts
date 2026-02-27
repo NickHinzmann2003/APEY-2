@@ -22,6 +22,13 @@ export async function registerRoutes(
     res.status(201).json(template);
   });
 
+  app.patch("/api/exercise-templates/:id", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const template = await storage.updateExerciseTemplate(Number(req.params.id), userId, req.body);
+    if (!template) return res.status(404).json({ message: "Vorlage nicht gefunden" });
+    res.json(template);
+  });
+
   app.delete("/api/exercise-templates/:id", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
     await storage.deleteExerciseTemplate(Number(req.params.id), userId);
@@ -121,7 +128,7 @@ export async function registerRoutes(
 
   app.post("/api/workout-logs", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
-    const { exerciseId, weight, setsCompleted, totalSets, repsAchieved } = req.body;
+    const { exerciseId, weight, setsCompleted, totalSets, repsAchieved, setWeights } = req.body;
     if (!exerciseId || typeof weight !== "number" || typeof setsCompleted !== "number" || typeof totalSets !== "number") {
       return res.status(400).json({ message: "Ungültige Daten" });
     }
@@ -131,6 +138,7 @@ export async function registerRoutes(
       setsCompleted,
       totalSets,
       repsAchieved: !!repsAchieved,
+      setWeights: setWeights || null,
     }, userId);
     if (!log) return res.status(403).json({ message: "Nicht berechtigt" });
     res.status(201).json(log);
@@ -158,6 +166,18 @@ export async function registerRoutes(
       res.json(data);
     } catch {
       res.status(404).json({ message: "Übung nicht gefunden" });
+    }
+  });
+
+  app.delete("/api/account", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    try {
+      await storage.deleteAllUserData(userId);
+      req.session.destroy(() => {
+        res.status(200).json({ message: "Account gelöscht" });
+      });
+    } catch (err) {
+      res.status(500).json({ message: "Fehler beim Löschen" });
     }
   });
 

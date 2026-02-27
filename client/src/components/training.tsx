@@ -303,6 +303,14 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
 
   const selectedTemplate = templates?.find(t => t.id === selectedTemplateId);
 
+  const fillFromTemplate = (tmpl: ExerciseTemplate) => {
+    setSets(String(tmpl.defaultSets ?? 3));
+    setRepsMin(String(tmpl.defaultRepsMin ?? 8));
+    setRepsMax(String(tmpl.defaultRepsMax ?? 12));
+    setWeight(String(tmpl.defaultWeight ?? 20));
+    setIncrement(String(tmpl.defaultIncrement ?? 2.5));
+  };
+
   const addMutation = useMutation({
     mutationFn: (data: InsertExercise) => apiRequest("POST", "/api/exercises", data),
     onSuccess: () => {
@@ -354,7 +362,11 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
           <TemplateCategoryPicker
             grouped={grouped}
             uncategorized={uncategorized}
-            onSelect={(id) => setSelectedTemplateId(id)}
+            onSelect={(id) => {
+              setSelectedTemplateId(id);
+              const tmpl = templates?.find(t => t.id === id);
+              if (tmpl) fillFromTemplate(tmpl);
+            }}
           />
         )}
         <Button variant="ghost" className="w-full h-10 mt-2" onClick={onDone} data-testid="btn-cancel-pick-template">Abbrechen</Button>

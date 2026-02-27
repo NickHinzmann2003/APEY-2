@@ -27,8 +27,8 @@ The frontend has a tab-based layout with bottom navigation for authenticated use
 - **Plans page** (`/plans`) - Manage training plans with collapsible days and exercises
 - **Exercises page** (`/exercises`) - Exercise template library (CRUD); exercises are created here, then selected when adding to training days
 - **Active Training page** (`/training`) - Select a training day, then work through exercises one at a time with per-set checkmarks, last-performance preview, auto-advance on completion, and workout log persistence
-- **Analytics page** (`/analytics`) - View percentage weight changes over the past 30 days per exercise, deduplicated by exercise template, with clickable exercises leading to detailed dashboard with time period filters and weight progression charts
-- **Profile page** (`/profile`) - User info and logout
+- **Analytics page** (`/analytics`) - View training stats (total days, total sets) and per-exercise weight changes grouped by category (Brust, Rücken, etc.) with avg change per group, sorted descending by change. Clickable exercises lead to detailed dashboard with time period filters and weight progression charts
+- **Profile page** (`/profile`) - User info, logout, and account deletion with confirmation
 
 **Key Frontend Files:**
 - `client/src/components/layout/Shell.tsx` - Layout wrapper with header and bottom navigation bar
@@ -51,12 +51,12 @@ The frontend has a tab-based layout with bottom navigation for authenticated use
 - **Tables**:
   - `users` - User profiles (managed by Replit Auth)
   - `sessions` - Session storage (mandatory for Replit Auth)
-  - `exercise_templates` - Exercise library/catalog per user (just name)
+  - `exercise_templates` - Exercise library/catalog per user (name, category, defaultSets, defaultRepsMin, defaultRepsMax, defaultWeight, defaultIncrement)
   - `training_plans` - Top-level training plan containers per user (e.g. "Upper/Lower")
   - `training_days` - Training day plans per user, optionally nested inside a plan (planId nullable)
   - `exercises` - Individual exercises per training day (name, sets, repsMin, repsMax, weight, increment, order, exerciseTemplateId)
   - `weight_history` - Per-exercise weight history log for progress chart tracking
-  - `workout_logs` - Per-exercise workout completion log (weight, setsCompleted, totalSets, repsAchieved, completedAt)
+  - `workout_logs` - Per-exercise workout completion log (weight, setsCompleted, totalSets, repsAchieved, setWeights JSON, completedAt)
 - **Relations**: users → exercise_templates; users → training_plans → training_days → exercises → weight_history/workout_logs
 
 ### API Endpoints
@@ -80,7 +80,10 @@ The frontend has a tab-based layout with bottom navigation for authenticated use
 - `DELETE /api/exercises/:id` - Delete exercise
 - `POST /api/workout-logs` - Create workout log entry
 - `GET /api/training-status` - Last trained day per plan + suggested next day
-- `GET /api/analytics` - Weight change analytics (30-day period)
+- `GET /api/analytics` - Weight change analytics with totalTrainingDays, totalSets, and items grouped by category
+- `GET /api/analytics/exercise/:templateId` - Detailed exercise analytics with weight history
+- `PATCH /api/exercise-templates/:id` - Update exercise template defaults
+- `DELETE /api/account` - Delete user account and all data
 
 ### Shared Code (shared/)
 - `shared/schema.ts` - Drizzle table definitions, relations, Zod insert schemas, TypeScript types

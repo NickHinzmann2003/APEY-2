@@ -13,6 +13,11 @@ export const exerciseTemplates = pgTable("exercise_templates", {
   userId: varchar("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
   category: text("category"),
+  defaultSets: integer("default_sets").default(3),
+  defaultRepsMin: integer("default_reps_min").default(8),
+  defaultRepsMax: integer("default_reps_max").default(12),
+  defaultWeight: real("default_weight").default(20),
+  defaultIncrement: real("default_increment").default(2.5),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -58,6 +63,7 @@ export const workoutLogs = pgTable("workout_logs", {
   setsCompleted: integer("sets_completed").notNull(),
   totalSets: integer("total_sets").notNull(),
   repsAchieved: boolean("reps_achieved").notNull().default(false),
+  setWeights: text("set_weights"),
   completedAt: timestamp("completed_at").defaultNow(),
 });
 

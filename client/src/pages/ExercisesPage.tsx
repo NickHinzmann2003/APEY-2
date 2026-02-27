@@ -4,9 +4,125 @@ import { ExerciseTemplate, DEFAULT_CATEGORIES } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2, Dumbbell, X, Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Plus, Loader2, Dumbbell, X, Trash2, ChevronDown, ChevronRight, Minus, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/training";
+
+function EditTemplateDialog({ template, onClose }: { template: ExerciseTemplate; onClose: () => void }) {
+  const { toast } = useToast();
+  const [sets, setSets] = useState(String(template.defaultSets ?? 3));
+  const [repsMin, setRepsMin] = useState(String(template.defaultRepsMin ?? 8));
+  const [repsMax, setRepsMax] = useState(String(template.defaultRepsMax ?? 12));
+  const [weight, setWeight] = useState(String(template.defaultWeight ?? 20));
+  const [increment, setIncrement] = useState(String(template.defaultIncrement ?? 2.5));
+  const [category, setCategory] = useState(template.category || DEFAULT_CATEGORIES[0]);
+
+  const updateMutation = useMutation({
+    mutationFn: (data: Record<string, any>) =>
+      apiRequest("PATCH", `/api/exercise-templates/${template.id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/exercise-templates"] });
+      toast({ title: "Übung aktualisiert" });
+      onClose();
+    },
+  });
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm bg-zinc-900 border-white/10 rounded-2xl p-5">
+        <DialogHeader>
+          <DialogTitle className="font-display text-lg">{template.name}</DialogTitle>
+          <DialogDescription className="text-muted-foreground text-sm">Standardwerte für neue Einträge</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          <div>
+            <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Kategorie</Label>
+            <div className="flex gap-1.5 flex-wrap">
+              {[...new Set([...DEFAULT_CATEGORIES, ...(template.category && !DEFAULT_CATEGORIES.includes(template.category) ? [template.category] : [])])].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    category === cat ? "bg-primary text-primary-foreground" : "bg-white/8 text-muted-foreground active:bg-white/15"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Sätze</Label>
+              <div className="flex items-center gap-0">
+                <button className="w-10 h-11 flex items-center justify-center rounded-l-md bg-background border border-white/10 text-muted-foreground active:text-primary" onClick={() => setSets(String(Math.max(1, (parseInt(sets) || 1) - 1)))}>
+                  <Minus className="w-4 h-4" />
+                </button>
+                <div className="flex-1 h-11 bg-background border-y border-white/10 flex items-center justify-center text-base font-bold">{sets || "0"}</div>
+                <button className="w-10 h-11 flex items-center justify-center rounded-r-md bg-background border border-white/10 text-muted-foreground active:text-primary" onClick={() => setSets(String((parseInt(sets) || 0) + 1))}>
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Steigerung (kg)</Label>
+              <Input type="number" inputMode="decimal" step="0.5" value={increment} onChange={(e) => setIncrement(e.target.value)} className="bg-background border-white/10 h-11 text-base" />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Wiederholungen (Min – Max)</Label>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0 flex-1">
+                <button className="w-9 h-11 flex items-center justify-center rounded-l-md bg-background border border-white/10 text-muted-foreground active:text-primary" onClick={() => setRepsMin(String(Math.max(1, (parseInt(repsMin) || 1) - 1)))}>
+                  <Minus className="w-4 h-4" />
+                </button>
+                <div className="flex-1 h-11 bg-background border-y border-white/10 flex items-center justify-center text-base font-bold">{repsMin || "0"}</div>
+                <button className="w-9 h-11 flex items-center justify-center rounded-r-md bg-background border border-white/10 text-muted-foreground active:text-primary" onClick={() => setRepsMin(String((parseInt(repsMin) || 0) + 1))}>
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+              <span className="text-muted-foreground font-bold text-lg shrink-0">–</span>
+              <div className="flex items-center gap-0 flex-1">
+                <button className="w-9 h-11 flex items-center justify-center rounded-l-md bg-background border border-white/10 text-muted-foreground active:text-primary" onClick={() => setRepsMax(String(Math.max(1, (parseInt(repsMax) || 1) - 1)))}>
+                  <Minus className="w-4 h-4" />
+                </button>
+                <div className="flex-1 h-11 bg-background border-y border-white/10 flex items-center justify-center text-base font-bold">{repsMax || "0"}</div>
+                <button className="w-9 h-11 flex items-center justify-center rounded-r-md bg-background border border-white/10 text-muted-foreground active:text-primary" onClick={() => setRepsMax(String((parseInt(repsMax) || 0) + 1))}>
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs uppercase tracking-wider font-bold text-muted-foreground mb-2 block">Startgewicht (kg)</Label>
+            <Input type="number" inputMode="decimal" step="0.5" value={weight} onChange={(e) => setWeight(e.target.value)} className="bg-background border-white/10 h-11 text-base" />
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <Button className="flex-1 h-12 shadow-lg shadow-primary/20 text-base" onClick={() => updateMutation.mutate({
+              category,
+              defaultSets: parseInt(sets) || 3,
+              defaultRepsMin: parseInt(repsMin) || 8,
+              defaultRepsMax: parseInt(repsMax) || 12,
+              defaultWeight: parseFloat(weight) || 0,
+              defaultIncrement: parseFloat(increment) || 2.5,
+            })} disabled={updateMutation.isPending} data-testid="btn-save-template-defaults">
+              {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Speichern
+            </Button>
+            <Button variant="ghost" className="h-12 px-5" onClick={onClose}>Abbrechen</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export function ExercisesPage() {
   const { toast } = useToast();
@@ -14,6 +130,7 @@ export function ExercisesPage() {
   const [newCategory, setNewCategory] = useState<string>(DEFAULT_CATEGORIES[0]);
   const [isAdding, setIsAdding] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<ExerciseTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<ExerciseTemplate | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
   const { data: templates, isLoading } = useQuery<ExerciseTemplate[]>({
@@ -48,7 +165,7 @@ export function ExercisesPage() {
 
   const isEmpty = (templates?.length ?? 0) === 0;
 
-  const allCategories = [...DEFAULT_CATEGORIES];
+  const allCategories = [...DEFAULT_CATEGORIES] as string[];
   templates?.forEach(t => {
     if (t.category && !allCategories.includes(t.category)) {
       allCategories.push(t.category);
@@ -184,17 +301,33 @@ export function ExercisesPage() {
                         data-testid={`template-${t.id}`}
                         className="flex items-center justify-between px-3 py-2.5 rounded-xl"
                       >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <Dumbbell className="w-4 h-4 text-primary shrink-0" />
-                          <span className="font-medium text-sm truncate" data-testid={`text-template-name-${t.id}`}>{t.name}</span>
+                        <div className="flex-1 min-w-0" onClick={() => setEditingTemplate(t)} role="button">
+                          <div className="flex items-center gap-3">
+                            <Dumbbell className="w-4 h-4 text-primary shrink-0" />
+                            <span className="font-medium text-sm truncate" data-testid={`text-template-name-${t.id}`}>{t.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 ml-7 mt-0.5 flex-wrap">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/8 text-muted-foreground">{t.defaultWeight ?? 20} kg</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/8 text-muted-foreground">{t.defaultSets ?? 3}×{t.defaultRepsMin ?? 8}-{t.defaultRepsMax ?? 12}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">±{t.defaultIncrement ?? 2.5} kg</span>
+                          </div>
                         </div>
-                        <button
-                          className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive active:bg-destructive/10 shrink-0"
-                          onClick={() => setTemplateToDelete(t)}
-                          data-testid={`btn-delete-template-${t.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-primary active:bg-primary/10"
+                            onClick={() => setEditingTemplate(t)}
+                            data-testid={`btn-edit-template-${t.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive active:bg-destructive/10 shrink-0"
+                            onClick={() => setTemplateToDelete(t)}
+                            data-testid={`btn-delete-template-${t.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -215,23 +348,43 @@ export function ExercisesPage() {
                     data-testid={`template-${t.id}`}
                     className="flex items-center justify-between px-3 py-2.5 rounded-xl"
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <Dumbbell className="w-4 h-4 text-primary shrink-0" />
-                      <span className="font-medium text-sm truncate" data-testid={`text-template-name-${t.id}`}>{t.name}</span>
+                    <div className="flex-1 min-w-0" onClick={() => setEditingTemplate(t)} role="button">
+                      <div className="flex items-center gap-3">
+                        <Dumbbell className="w-4 h-4 text-primary shrink-0" />
+                        <span className="font-medium text-sm truncate" data-testid={`text-template-name-${t.id}`}>{t.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 ml-7 mt-0.5 flex-wrap">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/8 text-muted-foreground">{t.defaultWeight ?? 20} kg</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/8 text-muted-foreground">{t.defaultSets ?? 3}×{t.defaultRepsMin ?? 8}-{t.defaultRepsMax ?? 12}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">±{t.defaultIncrement ?? 2.5} kg</span>
+                      </div>
                     </div>
-                    <button
-                      className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive active:bg-destructive/10 shrink-0"
-                      onClick={() => setTemplateToDelete(t)}
-                      data-testid={`btn-delete-template-${t.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-primary active:bg-primary/10"
+                        onClick={() => setEditingTemplate(t)}
+                        data-testid={`btn-edit-template-${t.id}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive active:bg-destructive/10 shrink-0"
+                        onClick={() => setTemplateToDelete(t)}
+                        data-testid={`btn-delete-template-${t.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
         </div>
+      )}
+
+      {editingTemplate && (
+        <EditTemplateDialog template={editingTemplate} onClose={() => setEditingTemplate(null)} />
       )}
 
       <ConfirmDeleteDialog

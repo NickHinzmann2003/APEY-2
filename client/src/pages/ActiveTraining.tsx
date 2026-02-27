@@ -6,9 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useTraining } from "@/hooks/use-training";
 import {
   Dumbbell, Loader2, Minus, Plus,
-  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock, Play, RotateCcw
+  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock, Play, RotateCcw, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { DayWithExercises, WeightHistoryDialog } from "@/components/training";
 
 type TrainingStatus = {
@@ -25,15 +26,65 @@ function LastPerformancePreview({ exerciseId }: { exerciseId: number }) {
   if (isLoading) return null;
   if (!lastLog) return null;
 
+  let setWeightsArr: number[] = [];
+  if (lastLog.setWeights) {
+    try { setWeightsArr = JSON.parse(lastLog.setWeights); } catch {}
+  }
+
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-sm text-muted-foreground" data-testid={`last-workout-${exerciseId}`}>
-      <Clock className="w-4 h-4 shrink-0 text-primary/60" />
-      <span>
-        Letztes Mal: <span className="text-foreground font-medium">{lastLog.weight} kg</span>
-        {" · "}
-        <span className="text-foreground font-medium">{lastLog.setsCompleted}/{lastLog.totalSets}</span> Sätze
-      </span>
+    <div className="px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-sm" data-testid={`last-workout-${exerciseId}`}>
+      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+        <Clock className="w-4 h-4 shrink-0 text-primary/60" />
+        <span className="font-medium text-xs uppercase tracking-wide">Letztes Mal</span>
+      </div>
+      {setWeightsArr.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5 ml-6">
+          {setWeightsArr.map((w, i) => (
+            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-white/8 text-foreground font-medium">
+              Satz {i + 1}: {w} kg
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="ml-6">
+          <span className="text-foreground font-medium">{lastLog.weight} kg</span>
+          {" · "}
+          <span className="text-foreground font-medium">{lastLog.setsCompleted}/{lastLog.totalSets}</span> Sätze
+        </div>
+      )}
     </div>
+  );
+}
+
+function WeightIncreaseDialog({ exercise, onConfirm, onDismiss }: {
+  exercise: Exercise;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={(v) => !v && onDismiss()}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm bg-zinc-900 border-white/10 rounded-2xl p-5">
+        <DialogHeader>
+          <DialogTitle className="font-display text-lg flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary shrink-0" />
+            Gewicht steigern?
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-sm mt-1">
+            Du hast alle Sätze bei <span className="text-foreground font-medium">{exercise.name}</span> abgeschlossen.
+            Möchtest du das Gewicht um <span className="text-foreground font-medium">{exercise.increment} kg</span> auf <span className="text-foreground font-medium">{Math.round((exercise.weight + exercise.increment) * 100) / 100} kg</span> steigern?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex gap-2 mt-2 sm:flex-row">
+          <Button variant="ghost" className="flex-1 h-11" onClick={onDismiss} data-testid="btn-skip-increment">
+            Nein, beibehalten
+          </Button>
+          <Button className="flex-1 h-11" onClick={onConfirm} data-testid="btn-confirm-increment">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Ja, steigern
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -43,29 +94,34 @@ function ExpandedExerciseCard({
   onToggleSet,
   onComplete,
   onChartOpen,
+  onWeightChange,
 }: {
   exercise: Exercise;
   setsState: boolean[];
   onToggleSet: (setIndex: number) => void;
   onComplete: () => void;
   onChartOpen: (ex: Exercise) => void;
+  onWeightChange: (exerciseId: number, newWeight: number) => void;
 }) {
   const { toast } = useToast();
+  const [localWeight, setLocalWeight] = useState(exercise.weight);
 
   const incrementMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/exercises/${exercise.id}/increment`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+    onSuccess: async (res) => {
+      const updated = await res.json();
+      setLocalWeight(updated.weight);
+      onWeightChange(exercise.id, updated.weight);
       toast({ title: "Gewicht gesteigert" });
     },
   });
 
   const decrementMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/exercises/${exercise.id}/decrement`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+    onSuccess: async (res) => {
+      const updated = await res.json();
+      setLocalWeight(updated.weight);
+      onWeightChange(exercise.id, updated.weight);
       toast({ title: "Gewicht reduziert" });
     },
   });
@@ -103,7 +159,7 @@ function ExpandedExerciseCard({
         <button
           className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl bg-red-500/10 text-red-400 active:bg-red-500/25 disabled:opacity-40 transition-colors font-semibold text-sm"
           onClick={() => decrementMutation.mutate()}
-          disabled={isPending || exercise.weight <= 0}
+          disabled={isPending || localWeight <= 0}
           data-testid={`btn-decrement-active-${exercise.id}`}
         >
           <Minus className="w-4 h-4" />
@@ -112,7 +168,7 @@ function ExpandedExerciseCard({
 
         <div className="flex-[1.4] h-12 flex flex-col items-center justify-center rounded-xl bg-white/8 border border-white/10">
           <span className="font-display font-bold text-xl leading-tight text-foreground">
-            {exercise.weight}
+            {localWeight}
           </span>
           <span className="text-xs text-muted-foreground leading-none">kg</span>
         </div>
@@ -214,6 +270,8 @@ export function ActiveTraining() {
 
   const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [setWeightsMap, setSetWeightsMap] = useState<Record<number, number[]>>({});
+  const [weightIncreaseExercise, setWeightIncreaseExercise] = useState<Exercise | null>(null);
 
   const { toast } = useToast();
 
@@ -226,11 +284,20 @@ export function ActiveTraining() {
   });
 
   const logMutation = useMutation({
-    mutationFn: (data: { exerciseId: number; weight: number; setsCompleted: number; totalSets: number; repsAchieved: boolean }) =>
+    mutationFn: (data: { exerciseId: number; weight: number; setsCompleted: number; totalSets: number; repsAchieved: boolean; setWeights: string }) =>
       apiRequest("POST", "/api/workout-logs", data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercises", variables.exerciseId, "last-workout"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-status"] });
+    },
+  });
+
+  const incrementMutationForPrompt = useMutation({
+    mutationFn: (exerciseId: number) => apiRequest("POST", `/api/exercises/${exerciseId}/increment`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+      toast({ title: "Gewicht für nächstes Mal gesteigert!" });
     },
   });
 
@@ -253,16 +320,50 @@ export function ActiveTraining() {
   }, [allDays, initialized]);
 
   const toggleSet = (exerciseId: number, setIndex: number) => {
+    const currentExercise = selectedDay?.exercises.find(e => e.id === exerciseId);
+    if (!currentExercise) return;
+
     setSetsMap((prev: Record<number, boolean[]>) => {
       const arr = [...(prev[exerciseId] || [])];
       arr[setIndex] = !arr[setIndex];
       return { ...prev, [exerciseId]: arr };
+    });
+
+    setSetWeightsMap(prev => {
+      const weights = [...(prev[exerciseId] || new Array(currentExercise.sets).fill(currentExercise.weight))];
+      weights[setIndex] = currentExercise.weight;
+      return { ...prev, [exerciseId]: weights };
+    });
+  };
+
+  const handleWeightChange = (exerciseId: number, newWeight: number) => {
+    queryClient.setQueryData(["/api/all-training-days"], (old: any) => {
+      if (!old) return old;
+      return old.map((day: any) => ({
+        ...day,
+        exercises: day.exercises.map((ex: any) =>
+          ex.id === exerciseId ? { ...ex, weight: newWeight } : ex
+        ),
+      }));
+    });
+
+    setSetWeightsMap(prev => {
+      const currentWeights = prev[exerciseId];
+      if (!currentWeights) return prev;
+      const updated = currentWeights.map((w: number, i: number) => {
+        const setDone = setsMap[exerciseId]?.[i];
+        return setDone ? w : newWeight;
+      });
+      return { ...prev, [exerciseId]: updated };
     });
   };
 
   const completeExercise = (exercise: Exercise) => {
     const sets = setsMap[exercise.id] || [];
     const setsCompleted = sets.filter(Boolean).length;
+    const allSetsCompleted = setsCompleted === exercise.sets;
+
+    const weights = setWeightsMap[exercise.id] || new Array(exercise.sets).fill(exercise.weight);
 
     logMutation.mutate({
       exerciseId: exercise.id,
@@ -270,6 +371,7 @@ export function ActiveTraining() {
       setsCompleted,
       totalSets: exercise.sets,
       repsAchieved: false,
+      setWeights: JSON.stringify(weights),
     });
 
     setCompletedSet((prev: Set<number>) => {
@@ -283,6 +385,10 @@ export function ActiveTraining() {
       if (nextIdx < selectedDay.exercises.length) {
         setActiveIndex(nextIdx);
       }
+    }
+
+    if (allSetsCompleted && exercise.increment > 0) {
+      setWeightIncreaseExercise(exercise);
     }
   };
 
@@ -299,6 +405,10 @@ export function ActiveTraining() {
       ...prev,
       [exerciseId]: new Array(selectedDay.exercises[idx].sets).fill(false),
     }));
+    setSetWeightsMap(prev => {
+      const { [exerciseId]: _, ...rest } = prev;
+      return rest;
+    });
     setActiveIndex(idx);
   };
 
@@ -307,6 +417,7 @@ export function ActiveTraining() {
     if (day) {
       setSelectedDayId(dayId);
       initSetsForDay(day.exercises);
+      setSetWeightsMap({});
     }
   };
 
@@ -420,6 +531,7 @@ export function ActiveTraining() {
                   onToggleSet={(setIdx) => toggleSet(ex.id, setIdx)}
                   onComplete={() => completeExercise(ex)}
                   onChartOpen={setChartExercise}
+                  onWeightChange={handleWeightChange}
                 />
               );
             }
@@ -442,6 +554,17 @@ export function ActiveTraining() {
         <WeightHistoryDialog
           exercise={chartExercise}
           onClose={() => setChartExercise(null)}
+        />
+      )}
+
+      {weightIncreaseExercise && (
+        <WeightIncreaseDialog
+          exercise={weightIncreaseExercise}
+          onConfirm={() => {
+            incrementMutationForPrompt.mutate(weightIncreaseExercise.id);
+            setWeightIncreaseExercise(null);
+          }}
+          onDismiss={() => setWeightIncreaseExercise(null)}
         />
       )}
     </div>
