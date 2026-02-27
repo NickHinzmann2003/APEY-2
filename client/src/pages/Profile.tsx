@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, User as UserIcon, Dumbbell, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { LogOut, User as UserIcon, Zap, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -69,7 +69,7 @@ export function Profile() {
       </div>
 
       <div className="border border-white/10 rounded-2xl bg-white/5 p-6 text-center mb-6">
-        <Dumbbell className="w-8 h-8 text-primary mx-auto mb-3" />
+        <Zap className="w-8 h-8 text-primary mx-auto mb-3" />
         <p className="font-display font-bold text-lg">APEX by Nick</p>
         <p className="text-muted-foreground text-sm mt-1">Dein persönlicher Trainingsplan-Tracker</p>
       </div>

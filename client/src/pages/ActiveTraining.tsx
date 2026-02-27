@@ -5,8 +5,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTraining } from "@/hooks/use-training";
 import {
-  Dumbbell, Loader2, Minus, Plus,
-  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock, Play, RotateCcw, TrendingUp
+  Zap, Loader2, Minus, Plus,
+  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock, Play, RotateCcw, TrendingUp, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -221,42 +221,57 @@ function ExpandedExerciseCard({
   );
 }
 
-function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets, onGoBack }: {
+function CollapsedExerciseCard({ exercise, completed, setsState, onGoBack }: {
   exercise: Exercise;
   completed: boolean;
-  setsCompleted: number;
-  totalSets: number;
+  setsState: boolean[];
   onGoBack?: () => void;
 }) {
+  const setsCompleted = setsState.filter(Boolean).length;
+
   return (
     <div
       data-testid={`collapsed-exercise-${exercise.id}`}
-      className={`rounded-2xl px-4 py-3 flex items-center gap-3 border ${
+      className={`rounded-2xl px-3 py-2.5 flex items-center gap-2.5 border ${
         completed
-          ? "border-primary/20 bg-primary/5 opacity-60"
+          ? "border-primary/20 bg-primary/5 opacity-70"
           : "border-white/8 bg-white/5 opacity-50"
       }`}
     >
-      {completed ? (
-        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-      ) : (
-        <Circle className="w-5 h-5 text-muted-foreground/40 shrink-0" />
-      )}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate">{exercise.name}</p>
+        <div className="flex items-center gap-2">
+          {completed ? (
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+          ) : (
+            <Circle className="w-4 h-4 text-muted-foreground/40 shrink-0" />
+          )}
+          <p className="font-semibold text-sm truncate">{exercise.name}</p>
+        </div>
         {completed && (
-          <p className="text-xs text-muted-foreground">
-            {setsCompleted}/{totalSets} Sätze
-          </p>
+          <div className="flex items-center gap-1 mt-1 ml-6">
+            {setsState.map((done, i) => (
+              <span
+                key={i}
+                className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${
+                  done
+                    ? "bg-primary/15 text-primary"
+                    : "bg-red-500/15 text-red-400"
+                }`}
+              >
+                {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+              </span>
+            ))}
+            <span className="text-xs text-muted-foreground ml-1.5">{setsCompleted}/{exercise.sets}</span>
+          </div>
         )}
       </div>
       {completed && onGoBack && (
         <button
           onClick={onGoBack}
-          className="w-9 h-9 flex items-center justify-center rounded-xl text-muted-foreground active:text-primary active:bg-primary/10 shrink-0"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground active:text-primary active:bg-primary/10 shrink-0"
           data-testid={`btn-goback-${exercise.id}`}
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="w-3.5 h-3.5" />
         </button>
       )}
     </div>
@@ -446,7 +461,7 @@ export function ActiveTraining() {
             <p className="text-xs font-bold uppercase tracking-wider text-primary/70 mb-3">Vorschlag</p>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                <Dumbbell className="w-6 h-6 text-primary" />
+                <Zap className="w-6 h-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-display font-bold text-xl leading-tight truncate" data-testid="text-suggested-day">{suggested.name}</p>
@@ -465,7 +480,7 @@ export function ActiveTraining() {
           </div>
         ) : (
           <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-            <Dumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+            <Zap className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
             <h3 className="text-lg font-display font-semibold mb-2">Kein Training verfügbar</h3>
             <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               Erstelle zuerst Trainingspläne mit Übungen, dann wird dir hier dein nächstes Training vorgeschlagen.
@@ -541,8 +556,7 @@ export function ActiveTraining() {
                 key={ex.id}
                 exercise={ex}
                 completed={isCompleted}
-                setsCompleted={(setsMap[ex.id] || []).filter(Boolean).length}
-                totalSets={ex.sets}
+                setsState={setsMap[ex.id] || new Array(ex.sets).fill(false)}
                 onGoBack={isCompleted ? () => goBackToExercise(ex.id) : undefined}
               />
             );

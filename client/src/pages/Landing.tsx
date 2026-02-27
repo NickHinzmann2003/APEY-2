@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Dumbbell, ArrowRight, Activity, CalendarCheck, Trophy } from "lucide-react";
+import { Zap, ArrowRight, Activity, CalendarCheck, Trophy } from "lucide-react";
 
 export function Landing() {
   return (
@@ -7,7 +7,7 @@ export function Landing() {
       {/* Navbar */}
       <nav className="absolute top-0 left-0 w-full z-50 p-6 md:p-8 flex justify-between items-center">
         <div className="flex items-center gap-2 text-primary">
-          <Dumbbell className="h-8 w-8" />
+          <Zap className="h-8 w-8" />
           <span className="font-display font-bold text-2xl tracking-wider uppercase text-white">
             APEX <span className="text-primary">by Nick</span>
           </span>

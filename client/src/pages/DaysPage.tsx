@@ -4,7 +4,7 @@ import { Exercise } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2, Dumbbell, X } from "lucide-react";
+import { Plus, Loader2, Zap, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DayWithExercises,
@@ -61,7 +61,7 @@ export function DaysPage() {
 
       {isEmpty && !isAddingDay ? (
         <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <Dumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+          <Zap className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
           <h3 className="text-lg font-display font-semibold mb-2">Noch keine Trainingstage</h3>
           <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
             Erstelle einzelne Trainingstage, die keinem Plan zugeordnet sind.
@@ -74,7 +74,7 @@ export function DaysPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-base font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
-              <Dumbbell className="w-4 h-4" />
+              <Zap className="w-4 h-4" />
               Einzelne Tage
             </h2>
             {!isAddingDay && (

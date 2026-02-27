@@ -4,7 +4,7 @@ import { Exercise } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2, Dumbbell, Folder, X } from "lucide-react";
+import { Plus, Loader2, Zap, Folder, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import {
@@ -75,7 +75,7 @@ export function PlansPage() {
 
       {isEmpty && !isAddingPlan ? (
         <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <Dumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+          <Zap className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
           <h3 className="text-lg font-display font-semibold mb-2">Noch keine Pläne</h3>
           <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
             Erstelle einen Trainingsplan (z.B. Upper/Lower, Push Pull Legs).
