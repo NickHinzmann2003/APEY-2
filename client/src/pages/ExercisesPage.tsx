@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2, Dumbbell, X, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDeleteDialog } from "@/components/training";
 
 export function ExercisesPage() {
   const { toast } = useToast();
   const [newName, setNewName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<ExerciseTemplate | null>(null);
 
   const { data: templates, isLoading } = useQuery<ExerciseTemplate[]>({
     queryKey: ["/api/exercise-templates"],
@@ -117,16 +119,29 @@ export function ExercisesPage() {
               </div>
               <button
                 className="w-10 h-10 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive active:bg-destructive/10 shrink-0"
-                onClick={() => deleteMutation.mutate(t.id)}
-                disabled={deleteMutation.isPending}
+                onClick={() => setTemplateToDelete(t)}
                 data-testid={`btn-delete-template-${t.id}`}
               >
-                {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        open={!!templateToDelete}
+        onClose={() => setTemplateToDelete(null)}
+        onConfirm={() => {
+          if (templateToDelete) {
+            deleteMutation.mutate(templateToDelete.id);
+            setTemplateToDelete(null);
+          }
+        }}
+        isPending={deleteMutation.isPending}
+        title="Übung löschen?"
+        description={`Möchtest du "${templateToDelete?.name}" wirklich aus der Bibliothek löschen?`}
+      />
     </div>
   );
 }

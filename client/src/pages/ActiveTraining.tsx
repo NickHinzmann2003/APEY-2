@@ -40,17 +40,13 @@ function LastPerformancePreview({ exerciseId }: { exerciseId: number }) {
 function ExpandedExerciseCard({
   exercise,
   setsState,
-  repsAchieved,
   onToggleSet,
-  onToggleReps,
   onComplete,
   onChartOpen,
 }: {
   exercise: Exercise;
   setsState: boolean[];
-  repsAchieved: boolean;
   onToggleSet: (setIndex: number) => void;
-  onToggleReps: () => void;
   onComplete: () => void;
   onChartOpen: (ex: Exercise) => void;
 }) {
@@ -156,21 +152,6 @@ function ExpandedExerciseCard({
       </div>
 
       <div className="px-3 pb-3 space-y-2">
-        <button
-          onClick={onToggleReps}
-          data-testid={`btn-toggle-reps-${exercise.id}`}
-          className={`w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all ${
-            repsAchieved
-              ? "bg-primary/15 text-primary border border-primary/30"
-              : "bg-white/5 text-muted-foreground border border-white/10"
-          }`}
-        >
-          {repsAchieved
-            ? <><CheckCircle2 className="w-5 h-5" /> Wiederholungen geschafft</>
-            : <><Circle className="w-5 h-5" /> Wiederholungen geschafft?</>
-          }
-        </button>
-
         <Button
           className="w-full h-12 text-base shadow-lg shadow-primary/20"
           onClick={onComplete}
@@ -184,12 +165,11 @@ function ExpandedExerciseCard({
   );
 }
 
-function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets, repsAchieved }: {
+function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets }: {
   exercise: Exercise;
   completed: boolean;
   setsCompleted: number;
   totalSets: number;
-  repsAchieved: boolean;
 }) {
   return (
     <div
@@ -209,7 +189,7 @@ function CollapsedExerciseCard({ exercise, completed, setsCompleted, totalSets, 
         <p className="font-semibold text-sm truncate">{exercise.name}</p>
         {completed && (
           <p className="text-xs text-muted-foreground">
-            {setsCompleted}/{totalSets} Sätze{repsAchieved ? " · Wdh ✓" : ""}
+            {setsCompleted}/{totalSets} Sätze
           </p>
         )}
       </div>
@@ -221,7 +201,6 @@ export function ActiveTraining() {
   const [selectedDayId, setSelectedDayId] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [setsMap, setSetsMap] = useState<Record<number, boolean[]>>({});
-  const [repsMap, setRepsMap] = useState<Record<number, boolean>>({});
   const [completedSet, setCompletedSet] = useState<Set<number>>(new Set());
   const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -269,7 +248,6 @@ export function ActiveTraining() {
       newSetsMap[ex.id] = new Array(ex.sets).fill(false);
     });
     setSetsMap(newSetsMap);
-    setRepsMap({});
     setCompletedSet(new Set());
     setActiveIndex(0);
   };
@@ -282,21 +260,16 @@ export function ActiveTraining() {
     });
   };
 
-  const toggleReps = (exerciseId: number) => {
-    setRepsMap(prev => ({ ...prev, [exerciseId]: !prev[exerciseId] }));
-  };
-
   const completeExercise = (exercise: Exercise) => {
     const sets = setsMap[exercise.id] || [];
     const setsCompleted = sets.filter(Boolean).length;
-    const repsAchieved = repsMap[exercise.id] ?? false;
 
     logMutation.mutate({
       exerciseId: exercise.id,
       weight: exercise.weight,
       setsCompleted,
       totalSets: exercise.sets,
-      repsAchieved,
+      repsAchieved: false,
     });
 
     setCompletedSet(prev => {
@@ -324,7 +297,6 @@ export function ActiveTraining() {
   const endTraining = () => {
     setSelectedDayId(null);
     setSetsMap({});
-    setRepsMap({});
     setCompletedSet(new Set());
     setActiveIndex(0);
   };
@@ -436,9 +408,7 @@ export function ActiveTraining() {
                   key={ex.id}
                   exercise={ex}
                   setsState={setsMap[ex.id] || new Array(ex.sets).fill(false)}
-                  repsAchieved={repsMap[ex.id] ?? false}
                   onToggleSet={(setIdx) => toggleSet(ex.id, setIdx)}
-                  onToggleReps={() => toggleReps(ex.id)}
                   onComplete={() => completeExercise(ex)}
                   onChartOpen={setChartExercise}
                 />
@@ -452,7 +422,6 @@ export function ActiveTraining() {
                 completed={isCompleted}
                 setsCompleted={(setsMap[ex.id] || []).filter(Boolean).length}
                 totalSets={ex.sets}
-                repsAchieved={repsMap[ex.id] ?? false}
               />
             );
           })}
