@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,10 +6,32 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import NotFound from "@/pages/not-found";
+import { Shell } from "@/components/layout/Shell";
 
-// Import Pages
 import { Landing } from "@/pages/Landing";
-import { Dashboard } from "@/pages/Dashboard";
+import { PlansPage } from "@/pages/PlansPage";
+import { DaysPage } from "@/pages/DaysPage";
+import { ActiveTraining } from "@/pages/ActiveTraining";
+import { Analytics } from "@/pages/Analytics";
+import { Profile } from "@/pages/Profile";
+
+function AuthenticatedApp() {
+  return (
+    <Shell>
+      <Switch>
+        <Route path="/">
+          <Redirect to="/plans" />
+        </Route>
+        <Route path="/plans" component={PlansPage} />
+        <Route path="/days" component={DaysPage} />
+        <Route path="/training" component={ActiveTraining} />
+        <Route path="/analytics" component={Analytics} />
+        <Route path="/profile" component={Profile} />
+        <Route component={NotFound} />
+      </Switch>
+    </Shell>
+  );
+}
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -22,16 +44,18 @@ function Router() {
     );
   }
 
-  return (
-    <Switch>
-      <Route path="/">
-        {isAuthenticated ? <Dashboard /> : <Landing />}
-      </Route>
-      
-      {/* Fallback to 404 */}
-      <Route component={NotFound} />
-    </Switch>
-  );
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route>
+          <Redirect to="/" />
+        </Route>
+      </Switch>
+    );
+  }
+
+  return <AuthenticatedApp />;
 }
 
 function App() {

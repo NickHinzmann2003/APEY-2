@@ -92,5 +92,17 @@ export async function registerRoutes(
     res.status(204).end();
   });
 
+  app.get("/api/all-training-days", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const days = await storage.getAllTrainingDaysForUser(userId);
+    res.json(days);
+  });
+
+  app.get("/api/analytics", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const data = await storage.getAnalyticsData(userId);
+    res.json(data);
+  });
+
   return httpServer;
 }

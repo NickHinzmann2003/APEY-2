@@ -4,7 +4,7 @@ import {
   type TrainingPlan, type TrainingDay, type Exercise, type WeightHistory,
   type InsertTrainingPlan, type InsertTrainingDay, type InsertExercise
 } from "@shared/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 
 export type TrainingDayWithExercises = TrainingDay & { exercises: Exercise[] };
 export type TrainingPlanWithDays = TrainingPlan & { trainingDays: TrainingDayWithExercises[] };
@@ -28,7 +28,18 @@ export interface IStorage {
   decrementExerciseWeight(id: number): Promise<Exercise | undefined>;
   deleteExercise(id: number): Promise<void>;
   getWeightHistory(exerciseId: number): Promise<WeightHistory[]>;
+  getAllTrainingDaysForUser(userId: string): Promise<TrainingDayWithExercises[]>;
+  getAnalyticsData(userId: string): Promise<AnalyticsItem[]>;
 }
+
+export type AnalyticsItem = {
+  exerciseId: number;
+  exerciseName: string;
+  dayName: string;
+  currentWeight: number;
+  oldWeight: number;
+  percentChange: number;
+};
 
 export class DatabaseStorage implements IStorage {
   async getTrainingPlans(userId: string): Promise<TrainingPlanWithDays[]> {
@@ -145,6 +156,67 @@ export class DatabaseStorage implements IStorage {
 
   async getWeightHistory(exerciseId: number): Promise<WeightHistory[]> {
     return db.select().from(weightHistory).where(eq(weightHistory.exerciseId, exerciseId));
+  }
+
+  async getAllTrainingDaysForUser(userId: string): Promise<TrainingDayWithExercises[]> {
+    const days = await db.query.trainingDays.findMany({
+      where: eq(trainingDays.userId, userId),
+      with: {
+        exercises: {
+          orderBy: (exercises, { asc }) => [asc(exercises.order)]
+        }
+      }
+    });
+    return days as TrainingDayWithExercises[];
+  }
+
+  async getAnalyticsData(userId: string): Promise<AnalyticsItem[]> {
+    const allDays = await db.query.trainingDays.findMany({
+      where: eq(trainingDays.userId, userId),
+      with: { exercises: true }
+    });
+
+    const allExerciseIds = allDays.flatMap(d => d.exercises.map(e => e.id));
+    if (allExerciseIds.length === 0) return [];
+
+    const allHistory = await db.select()
+      .from(weightHistory)
+      .where(inArray(weightHistory.exerciseId, allExerciseIds));
+
+    const historyByExercise = new Map<number, WeightHistory[]>();
+    for (const h of allHistory) {
+      if (!historyByExercise.has(h.exerciseId)) historyByExercise.set(h.exerciseId, []);
+      historyByExercise.get(h.exerciseId)!.push(h);
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    return allDays.flatMap(day =>
+      day.exercises.map(ex => {
+        const history = (historyByExercise.get(ex.id) || [])
+          .sort((a, b) => new Date(a.recordedAt!).getTime() - new Date(b.recordedAt!).getTime());
+
+        const oldEntry = history.find(h =>
+          h.recordedAt && new Date(h.recordedAt) <= thirtyDaysAgo
+        ) || history[0];
+
+        const currentWeight = ex.weight;
+        const oldWeight = oldEntry?.weight ?? currentWeight;
+        const percentChange = oldWeight > 0
+          ? Math.round(((currentWeight - oldWeight) / oldWeight) * 1000) / 10
+          : 0;
+
+        return {
+          exerciseId: ex.id,
+          exerciseName: ex.name,
+          dayName: day.name,
+          currentWeight,
+          oldWeight,
+          percentChange,
+        };
+      })
+    );
   }
 }
 

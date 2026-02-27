@@ -11,23 +11,20 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   Plus, Trash2, Loader2,
-  Dumbbell, ChevronDown, ChevronRight, FolderOpen, Folder,
+  ChevronDown, ChevronRight, FolderOpen, Folder,
   BarChart2, X, Minus, Pencil, Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Shell } from "@/components/layout/Shell";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 
-type ExerciseWithHistory = Exercise;
-type DayWithExercises = TrainingDay & { exercises: ExerciseWithHistory[] };
-type PlanWithDays = TrainingPlan & { trainingDays: DayWithExercises[] };
+export type DayWithExercises = TrainingDay & { exercises: Exercise[] };
+export type PlanWithDays = TrainingPlan & { trainingDays: DayWithExercises[] };
 
-// ---------- Weight History Dialog ----------
-function WeightHistoryDialog({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
+export function WeightHistoryDialog({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   const { data: history, isLoading } = useQuery<WeightHistory[]>({
     queryKey: ["/api/exercises", exercise.id, "history"],
     queryFn: async () => {
@@ -110,8 +107,7 @@ function WeightHistoryDialog({ exercise, onClose }: { exercise: Exercise; onClos
   );
 }
 
-// ---------- Exercise Card (mobile-first) ----------
-function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpen: (ex: Exercise) => void }) {
+export function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpen: (ex: Exercise) => void }) {
   const { toast } = useToast();
 
   const incrementMutation = useMutation({
@@ -119,6 +115,7 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       toast({ title: "✓ Gewicht gesteigert" });
     },
   });
@@ -128,6 +125,7 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       toast({ title: "Gewicht reduziert" });
     },
   });
@@ -137,6 +135,7 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
     },
   });
 
@@ -147,7 +146,6 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
       data-testid={`exercise-row-${exercise.id}`}
       className="border border-white/8 rounded-2xl bg-white/5 overflow-hidden"
     >
-      {/* Top row: name + secondary actions */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-base leading-tight truncate">{exercise.name}</p>
@@ -180,7 +178,6 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
         </div>
       </div>
 
-      {/* Weight control row */}
       <div className="flex items-center gap-2 px-3 pb-3">
         <button
           className="flex-1 h-12 flex items-center justify-center gap-1.5 rounded-xl bg-red-500/10 text-red-400 active:bg-red-500/25 disabled:opacity-40 transition-colors font-semibold text-sm"
@@ -213,14 +210,12 @@ function ExerciseRow({ exercise, onChartOpen }: { exercise: Exercise; onChartOpe
   );
 }
 
-// ---------- Add Exercise Form ----------
-function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
+export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   trainingDayId: number;
   exerciseCount: number;
   onDone: () => void;
 }) {
   const { toast } = useToast();
-  // Store all numeric fields as strings so the user can freely clear and retype them
   const [name, setName] = useState("");
   const [sets, setSets] = useState("3");
   const [repsMin, setRepsMin] = useState("8");
@@ -233,6 +228,7 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       toast({ title: "Übung hinzugefügt" });
       onDone();
     },
@@ -348,8 +344,7 @@ function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
   );
 }
 
-// ---------- Training Day (collapsible) ----------
-function TrainingDayItem({
+export function TrainingDayItem({
   day, onDelete, onChartOpen,
 }: {
   day: DayWithExercises;
@@ -367,6 +362,7 @@ function TrainingDayItem({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
       queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       setIsRenaming(false);
       toast({ title: "Trainingstag umbenannt" });
     },
@@ -383,7 +379,6 @@ function TrainingDayItem({
       className="border border-white/8 rounded-2xl overflow-hidden bg-zinc-900/60"
       data-testid={`training-day-${day.id}`}
     >
-      {/* Day header — full-height touch target */}
       {isRenaming ? (
         <div className="flex items-center gap-2 px-3 py-2.5" style={{ minHeight: 56 }}>
           <Input
@@ -454,7 +449,6 @@ function TrainingDayItem({
         </div>
       )}
 
-      {/* Day content */}
       {open && (
         <div className="px-3 pb-3 space-y-2.5 border-t border-white/5 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
           {day.exercises.map((ex) => (
@@ -482,8 +476,7 @@ function TrainingDayItem({
   );
 }
 
-// ---------- Training Plan (collapsible folder) ----------
-function TrainingPlanSection({
+export function TrainingPlanSection({
   plan, onDelete, onChartOpen
 }: {
   plan: PlanWithDays;
@@ -500,6 +493,7 @@ function TrainingPlanSection({
       apiRequest("POST", "/api/training-days", { name, planId: plan.id }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       setNewDayName("");
       setIsAddingDay(false);
       toast({ title: "Trainingstag erstellt" });
@@ -510,6 +504,7 @@ function TrainingPlanSection({
     mutationFn: (id: number) => apiRequest("DELETE", `/api/training-days/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/all-training-days"] });
       toast({ title: "Trainingstag gelöscht" });
     },
   });
@@ -521,7 +516,6 @@ function TrainingPlanSection({
       className="border border-white/10 rounded-2xl overflow-hidden bg-zinc-900/40 shadow-lg"
       data-testid={`training-plan-${plan.id}`}
     >
-      {/* Plan header */}
       <div
         className="flex items-center justify-between px-4 cursor-pointer select-none active:bg-white/5 transition-colors"
         style={{ minHeight: 64 }}
@@ -555,7 +549,6 @@ function TrainingPlanSection({
         </div>
       </div>
 
-      {/* Plan content */}
       {open && (
         <div className="px-3 pb-3 space-y-2.5 border-t border-white/5 pt-3 animate-in fade-in slide-in-from-top-2 duration-200">
           {plan.trainingDays.length === 0 && !isAddingDay && (
@@ -608,226 +601,5 @@ function TrainingPlanSection({
         </div>
       )}
     </div>
-  );
-}
-
-// ---------- Main Dashboard ----------
-export function Dashboard() {
-  const { toast } = useToast();
-  const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
-  const [newPlanName, setNewPlanName] = useState("");
-  const [isAddingPlan, setIsAddingPlan] = useState(false);
-  const [newDayName, setNewDayName] = useState("");
-  const [isAddingDay, setIsAddingDay] = useState(false);
-
-  const { data: plans, isLoading: plansLoading } = useQuery<PlanWithDays[]>({
-    queryKey: ["/api/training-plans"],
-  });
-
-  const { data: standaloneDays, isLoading: daysLoading } = useQuery<DayWithExercises[]>({
-    queryKey: ["/api/training-days"],
-  });
-
-  const createPlanMutation = useMutation({
-    mutationFn: (name: string) => apiRequest("POST", "/api/training-plans", { name }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
-      setNewPlanName("");
-      setIsAddingPlan(false);
-      toast({ title: "Trainingsplan erstellt" });
-    },
-  });
-
-  const deletePlanMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/training-plans/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
-      toast({ title: "Trainingsplan gelöscht" });
-    },
-  });
-
-  const createDayMutation = useMutation({
-    mutationFn: (name: string) => apiRequest("POST", "/api/training-days", { name }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
-      setNewDayName("");
-      setIsAddingDay(false);
-      toast({ title: "Trainingstag erstellt" });
-    },
-  });
-
-  const deleteDayMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/training-days/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/training-days"] });
-      toast({ title: "Trainingstag gelöscht" });
-    },
-  });
-
-  const isLoading = plansLoading || daysLoading;
-  const isEmpty = (plans?.length ?? 0) === 0 && (standaloneDays?.length ?? 0) === 0;
-
-  if (isLoading) {
-    return (
-      <Shell>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </Shell>
-    );
-  }
-
-  return (
-    <Shell>
-      <div className="mb-6">
-        <h1 className="font-display text-3xl font-bold mb-1">Mein Training</h1>
-        <p className="text-muted-foreground text-sm">Trainingspläne, Tage und Übungen</p>
-      </div>
-
-      {isEmpty ? (
-        <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-          <Dumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-          <h3 className="text-lg font-display font-semibold mb-2">Noch kein Training erfasst</h3>
-          <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
-            Erstelle einen Trainingsplan (z.B. Upper/Lower) oder füge direkt einzelne Trainingstage hinzu.
-          </p>
-          <div className="flex flex-col gap-3 px-8">
-            <Button className="h-12 text-base" onClick={() => setIsAddingPlan(true)} data-testid="btn-create-first-plan">
-              <Folder className="w-4 h-4 mr-2" /> Trainingsplan erstellen
-            </Button>
-            <Button variant="outline" className="h-12 text-base border-white/10" onClick={() => setIsAddingDay(true)} data-testid="btn-create-first-day">
-              <Plus className="w-4 h-4 mr-2" /> Einzelnen Tag erstellen
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Training Plans section */}
-      {(!isEmpty || (plans?.length ?? 0) > 0 || isAddingPlan) && (
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-base font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
-              <Folder className="w-4 h-4" />
-              Trainingspläne
-            </h2>
-            {!isAddingPlan && (
-              <button
-                className="flex items-center gap-1 text-sm font-medium text-primary active:opacity-70 px-3 py-2 rounded-xl"
-                onClick={() => setIsAddingPlan(true)}
-                data-testid="btn-create-plan"
-              >
-                <Plus className="w-4 h-4" /> Neuer Plan
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-3">
-            {isAddingPlan && (
-              <div className="flex gap-2 p-3 border border-primary/20 rounded-2xl bg-primary/5 animate-in fade-in duration-200">
-                <Input
-                  placeholder="z.B. Upper / Lower, Push Pull Legs..."
-                  value={newPlanName}
-                  onChange={(e) => setNewPlanName(e.target.value)}
-                  className="bg-background border-white/10 h-12 text-base flex-1"
-                  data-testid="input-plan-name"
-                  onKeyDown={(e) => e.key === "Enter" && newPlanName && createPlanMutation.mutate(newPlanName)}
-                  autoFocus
-                />
-                <Button
-                  className="h-12 px-4 shrink-0"
-                  onClick={() => createPlanMutation.mutate(newPlanName)}
-                  disabled={!newPlanName || createPlanMutation.isPending}
-                  data-testid="btn-confirm-create-plan"
-                >
-                  {createPlanMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "OK"}
-                </Button>
-                <Button variant="ghost" size="icon" className="h-12 w-12 shrink-0" onClick={() => setIsAddingPlan(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-
-            {plans?.map((plan) => (
-              <TrainingPlanSection
-                key={plan.id}
-                plan={plan}
-                onDelete={() => deletePlanMutation.mutate(plan.id)}
-                onChartOpen={setChartExercise}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Standalone Days section */}
-      {(!isEmpty || (standaloneDays?.length ?? 0) > 0 || isAddingDay) && (
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-base font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
-              <Dumbbell className="w-4 h-4" />
-              Einzelne Tage
-            </h2>
-            {!isAddingDay && (
-              <button
-                className="flex items-center gap-1 text-sm font-medium text-primary active:opacity-70 px-3 py-2 rounded-xl"
-                onClick={() => setIsAddingDay(true)}
-                data-testid="btn-create-standalone-day"
-              >
-                <Plus className="w-4 h-4" /> Neuer Tag
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-2.5">
-            {isAddingDay && (
-              <div className="flex gap-2 p-3 border border-primary/20 rounded-2xl bg-primary/5 animate-in fade-in duration-200">
-                <Input
-                  placeholder="z.B. Beine, Rücken, Brust..."
-                  value={newDayName}
-                  onChange={(e) => setNewDayName(e.target.value)}
-                  className="bg-background border-white/10 h-12 text-base flex-1"
-                  data-testid="input-standalone-day-name"
-                  onKeyDown={(e) => e.key === "Enter" && newDayName && createDayMutation.mutate(newDayName)}
-                  autoFocus
-                />
-                <Button
-                  className="h-12 px-4 shrink-0"
-                  onClick={() => createDayMutation.mutate(newDayName)}
-                  disabled={!newDayName || createDayMutation.isPending}
-                  data-testid="btn-confirm-create-day"
-                >
-                  {createDayMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                </Button>
-                <Button variant="ghost" size="icon" className="h-12 w-12 shrink-0" onClick={() => setIsAddingDay(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-
-            {standaloneDays?.map((day) => (
-              <TrainingDayItem
-                key={day.id}
-                day={day}
-                onDelete={() => deleteDayMutation.mutate(day.id)}
-                onChartOpen={setChartExercise}
-              />
-            ))}
-
-            {(standaloneDays?.length ?? 0) === 0 && !isAddingDay && !isEmpty && (
-              <div className="text-center py-6 border border-dashed border-white/8 rounded-2xl text-muted-foreground text-sm">
-                Keine einzelnen Trainingstage vorhanden.
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {chartExercise && (
-        <WeightHistoryDialog
-          exercise={chartExercise}
-          onClose={() => setChartExercise(null)}
-        />
-      )}
-    </Shell>
   );
 }
