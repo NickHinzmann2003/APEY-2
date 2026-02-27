@@ -136,6 +136,12 @@ export async function registerRoutes(
     res.status(201).json(log);
   });
 
+  app.get("/api/training-status", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const status = await storage.getTrainingStatus(userId);
+    res.json(status);
+  });
+
   app.get("/api/analytics", isAuthenticated, async (req: any, res) => {
     const userId = req.user.claims.sub;
     const data = await storage.getAnalyticsData(userId);

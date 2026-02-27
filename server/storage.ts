@@ -9,6 +9,17 @@ import { eq, and, isNull, inArray, desc } from "drizzle-orm";
 export type TrainingDayWithExercises = TrainingDay & { exercises: Exercise[] };
 export type TrainingPlanWithDays = TrainingPlan & { trainingDays: TrainingDayWithExercises[] };
 
+export type LastTrainedInfo = {
+  dayId: number;
+  dayName: string;
+  trainedAt: string;
+};
+
+export type TrainingStatus = {
+  lastTrainedByPlan: Record<number, LastTrainedInfo>;
+  suggestedDay: { id: number; name: string; planId: number; planName: string; exerciseCount: number } | null;
+};
+
 export type AnalyticsItem = {
   exerciseId: number;
   exerciseName: string;
@@ -44,6 +55,7 @@ export interface IStorage {
   getLastWorkoutLog(exerciseId: number, userId: string): Promise<WorkoutLog | undefined>;
   createWorkoutLog(data: InsertWorkoutLog, userId: string): Promise<WorkoutLog | undefined>;
 
+  getTrainingStatus(userId: string): Promise<TrainingStatus>;
   getAnalyticsData(userId: string): Promise<AnalyticsItem[]>;
 }
 
@@ -214,6 +226,124 @@ export class DatabaseStorage implements IStorage {
     if (!day || day.userId !== userId) return undefined;
     const [log] = await db.insert(workoutLogs).values(data).returning();
     return log;
+  }
+
+  async getTrainingStatus(userId: string): Promise<TrainingStatus> {
+    const plans = await db.query.trainingPlans.findMany({
+      where: eq(trainingPlans.userId, userId),
+      with: {
+        trainingDays: {
+          orderBy: (td, { asc }) => [asc(td.id)],
+          with: {
+            exercises: true
+          }
+        }
+      }
+    });
+
+    const userExerciseIds: number[] = [];
+    for (const plan of plans) {
+      for (const day of plan.trainingDays) {
+        for (const ex of day.exercises) {
+          userExerciseIds.push(ex.id);
+        }
+      }
+    }
+
+    let allUserLogs: (typeof workoutLogs.$inferSelect)[] = [];
+    if (userExerciseIds.length > 0) {
+      allUserLogs = await db.select()
+        .from(workoutLogs)
+        .where(inArray(workoutLogs.exerciseId, userExerciseIds))
+        .orderBy(desc(workoutLogs.completedAt));
+    }
+
+    const logsByExercise = new Map<number, Date>();
+    for (const log of allUserLogs) {
+      if (log.completedAt && !logsByExercise.has(log.exerciseId)) {
+        logsByExercise.set(log.exerciseId, new Date(log.completedAt));
+      }
+    }
+
+    const lastTrainedByPlan: Record<number, LastTrainedInfo> = {};
+    let globalLastDayId: number | null = null;
+    let globalLastPlanId: number | null = null;
+    let globalLastTime: Date | null = null;
+
+    for (const plan of plans) {
+      let planLastDayId: number | null = null;
+      let planLastTime: Date | null = null;
+      let planLastDayName = "";
+
+      for (const day of plan.trainingDays) {
+        let dayLastTime: Date | null = null;
+        for (const ex of day.exercises) {
+          const t = logsByExercise.get(ex.id);
+          if (t && (!dayLastTime || t > dayLastTime)) {
+            dayLastTime = t;
+          }
+        }
+        if (dayLastTime) {
+          if (!planLastTime || dayLastTime > planLastTime) {
+            planLastTime = dayLastTime;
+            planLastDayId = day.id;
+            planLastDayName = day.name;
+          }
+          if (!globalLastTime || dayLastTime > globalLastTime) {
+            globalLastTime = dayLastTime;
+            globalLastDayId = day.id;
+            globalLastPlanId = plan.id;
+          }
+        }
+      }
+
+      if (planLastDayId !== null && planLastTime) {
+        lastTrainedByPlan[plan.id] = {
+          dayId: planLastDayId,
+          dayName: planLastDayName,
+          trainedAt: planLastTime.toISOString(),
+        };
+      }
+    }
+
+    let suggestedDay: TrainingStatus["suggestedDay"] = null;
+
+    if (globalLastPlanId !== null && globalLastDayId !== null) {
+      const plan = plans.find(p => p.id === globalLastPlanId);
+      if (plan) {
+        const daysWithExercises = plan.trainingDays.filter(d => d.exercises.length > 0);
+        if (daysWithExercises.length > 0) {
+          const lastIdx = daysWithExercises.findIndex(d => d.id === globalLastDayId);
+          const nextIdx = (lastIdx + 1) % daysWithExercises.length;
+          const nextDay = daysWithExercises[nextIdx];
+          suggestedDay = {
+            id: nextDay.id,
+            name: nextDay.name,
+            planId: plan.id,
+            planName: plan.name,
+            exerciseCount: nextDay.exercises.length,
+          };
+        }
+      }
+    }
+
+    if (!suggestedDay) {
+      for (const plan of plans) {
+        const firstWithExercises = plan.trainingDays.find(d => d.exercises.length > 0);
+        if (firstWithExercises) {
+          suggestedDay = {
+            id: firstWithExercises.id,
+            name: firstWithExercises.name,
+            planId: plan.id,
+            planName: plan.name,
+            exerciseCount: firstWithExercises.exercises.length,
+          };
+          break;
+        }
+      }
+    }
+
+    return { lastTrainedByPlan, suggestedDay };
   }
 
   async getAnalyticsData(userId: string): Promise<AnalyticsItem[]> {

@@ -4,13 +4,16 @@ import { Exercise, WorkoutLog } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Dumbbell, ChevronRight, Loader2, Minus, Plus,
-  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock
+  Dumbbell, Loader2, Minus, Plus,
+  CheckCircle2, Circle, Trophy, ArrowLeft, BarChart2, Clock, Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DayWithExercises, WeightHistoryDialog } from "@/components/training";
 
-type SetState = boolean[];
+type TrainingStatus = {
+  lastTrainedByPlan: Record<number, { dayId: number; dayName: string; trainedAt: string }>;
+  suggestedDay: { id: number; name: string; planId: number; planName: string; exerciseCount: number } | null;
+};
 
 function LastPerformancePreview({ exerciseId }: { exerciseId: number }) {
   const { data: lastLog, isLoading } = useQuery<WorkoutLog | null>({
@@ -221,11 +224,16 @@ export function ActiveTraining() {
   const [repsMap, setRepsMap] = useState<Record<number, boolean>>({});
   const [completedSet, setCompletedSet] = useState<Set<number>>(new Set());
   const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   const { toast } = useToast();
 
-  const { data: allDays, isLoading } = useQuery<DayWithExercises[]>({
+  const { data: allDays, isLoading: daysLoading } = useQuery<DayWithExercises[]>({
     queryKey: ["/api/all-training-days"],
+  });
+
+  const { data: trainingStatus, isLoading: statusLoading } = useQuery<TrainingStatus>({
+    queryKey: ["/api/training-status"],
   });
 
   const logMutation = useMutation({
@@ -233,10 +241,27 @@ export function ActiveTraining() {
       apiRequest("POST", "/api/workout-logs", data),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/exercises", variables.exerciseId, "last-workout"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-status"] });
     },
   });
 
   const selectedDay = allDays?.find(d => d.id === selectedDayId);
+
+  useEffect(() => {
+    if (initialized || !allDays) return;
+    const params = new URLSearchParams(window.location.search);
+    const dayIdParam = params.get("dayId");
+    if (dayIdParam) {
+      const dayId = parseInt(dayIdParam);
+      const day = allDays.find(d => d.id === dayId);
+      if (day) {
+        setSelectedDayId(dayId);
+        initSetsForDay(day);
+      }
+      window.history.replaceState({}, "", "/training");
+    }
+    setInitialized(true);
+  }, [allDays, initialized]);
 
   const initSetsForDay = (day: DayWithExercises) => {
     const newSetsMap: Record<number, boolean[]> = {};
@@ -304,6 +329,8 @@ export function ActiveTraining() {
     setActiveIndex(0);
   };
 
+  const isLoading = daysLoading || statusLoading;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -313,42 +340,44 @@ export function ActiveTraining() {
   }
 
   if (!selectedDay) {
+    const suggested = trainingStatus?.suggestedDay;
+
     return (
       <div>
         <div className="mb-6">
-          <h1 className="font-display text-3xl font-bold mb-1">Training starten</h1>
-          <p className="text-muted-foreground text-sm">Wähle einen Trainingstag aus</p>
+          <h1 className="font-display text-3xl font-bold mb-1">Training</h1>
+          <p className="text-muted-foreground text-sm">Dein nächstes Training</p>
         </div>
 
-        {(!allDays || allDays.length === 0) ? (
-          <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-            <Dumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
-            <h3 className="text-lg font-display font-semibold mb-2">Keine Trainingstage</h3>
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-              Erstelle zuerst Trainingspläne und -tage, bevor du ein Training starten kannst.
-            </p>
+        {suggested ? (
+          <div className="border border-primary/20 rounded-2xl bg-primary/5 p-5 animate-in fade-in duration-300" data-testid="suggested-training">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary/70 mb-3">Vorschlag</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Dumbbell className="w-6 h-6 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-display font-bold text-xl leading-tight truncate" data-testid="text-suggested-day">{suggested.name}</p>
+                <p className="text-sm text-muted-foreground" data-testid="text-suggested-plan">
+                  {suggested.planName} · {suggested.exerciseCount} {suggested.exerciseCount === 1 ? "Übung" : "Übungen"}
+                </p>
+              </div>
+            </div>
+            <Button
+              className="w-full h-12 text-base shadow-lg shadow-primary/20"
+              onClick={() => startTraining(suggested.id)}
+              data-testid="btn-start-suggested"
+            >
+              <Play className="w-5 h-5 mr-2" /> Training starten
+            </Button>
           </div>
         ) : (
-          <div className="space-y-2">
-            {allDays.map(day => (
-              <button
-                key={day.id}
-                onClick={() => startTraining(day.id)}
-                data-testid={`btn-start-day-${day.id}`}
-                className="w-full flex items-center justify-between px-4 py-4 rounded-2xl border border-white/8 bg-white/5 active:bg-white/10 transition-colors text-left"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <Dumbbell className="w-5 h-5 text-primary shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-semibold text-base truncate">{day.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {day.exercises.length} {day.exercises.length === 1 ? "Übung" : "Übungen"}
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-              </button>
-            ))}
+          <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
+            <Dumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+            <h3 className="text-lg font-display font-semibold mb-2">Kein Training verfügbar</h3>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+              Erstelle zuerst Trainingspläne mit Übungen, dann wird dir hier dein nächstes Training vorgeschlagen.
+            </p>
           </div>
         )}
       </div>

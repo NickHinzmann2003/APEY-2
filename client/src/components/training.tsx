@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import {
   Plus, Trash2, Loader2,
   ChevronDown, ChevronRight, FolderOpen, Folder,
-  BarChart2, X, Minus, Pencil, Check
+  BarChart2, X, Minus, Pencil, Check, Play, Clock
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -386,11 +386,13 @@ export function AddExerciseForm({ trainingDayId, exerciseCount, onDone }: {
 }
 
 export function TrainingDayItem({
-  day, onDelete, onChartOpen,
+  day, onDelete, onChartOpen, isLastTrained, onStartTraining,
 }: {
   day: DayWithExercises;
   onDelete: () => void;
   onChartOpen: (ex: Exercise) => void;
+  isLastTrained?: boolean;
+  onStartTraining?: () => void;
 }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -452,41 +454,63 @@ export function TrainingDayItem({
           </button>
         </div>
       ) : (
-        <div
-          className="flex items-center justify-between px-4 cursor-pointer select-none active:bg-white/5 transition-colors"
-          style={{ minHeight: 56 }}
-          onClick={() => setOpen(!open)}
-          data-testid={`btn-toggle-day-${day.id}`}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
-        >
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            {open
-              ? <ChevronDown className="w-5 h-5 text-primary shrink-0" />
-              : <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-            }
-            <span className="font-semibold text-base truncate">{day.name}</span>
-            <span className="text-xs text-muted-foreground shrink-0">
-              {day.exercises.length} {day.exercises.length === 1 ? "Übung" : "Übungen"}
-            </span>
+        <div>
+          <div
+            className="flex items-center justify-between px-4 cursor-pointer select-none active:bg-white/5 transition-colors"
+            style={{ minHeight: 56 }}
+            onClick={() => setOpen(!open)}
+            data-testid={`btn-toggle-day-${day.id}`}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && setOpen(!open)}
+          >
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {open
+                ? <ChevronDown className="w-5 h-5 text-primary shrink-0" />
+                : <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+              }
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-base truncate">{day.name}</span>
+                  {isLastTrained && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0" data-testid={`badge-last-trained-${day.id}`}>
+                      Zuletzt
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {day.exercises.length} {day.exercises.length === 1 ? "Übung" : "Übungen"}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center shrink-0">
+              <button
+                className="w-10 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-primary"
+                onClick={(e) => { e.stopPropagation(); setNewName(day.name); setIsRenaming(true); }}
+                data-testid={`btn-rename-day-${day.id}`}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button
+                className="w-10 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive shrink-0"
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                data-testid={`btn-delete-day-${day.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center shrink-0">
-            <button
-              className="w-10 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-primary"
-              onClick={(e) => { e.stopPropagation(); setNewName(day.name); setIsRenaming(true); }}
-              data-testid={`btn-rename-day-${day.id}`}
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-            <button
-              className="w-10 h-11 flex items-center justify-center rounded-xl text-muted-foreground active:text-destructive shrink-0"
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              data-testid={`btn-delete-day-${day.id}`}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          {onStartTraining && day.exercises.length > 0 && (
+            <div className="px-4 pb-2.5">
+              <button
+                onClick={(e) => { e.stopPropagation(); onStartTraining(); }}
+                data-testid={`btn-train-day-${day.id}`}
+                className="w-full h-10 rounded-xl bg-primary/10 text-primary text-sm font-semibold flex items-center justify-center gap-2 active:bg-primary/20 transition-colors"
+              >
+                <Play className="w-4 h-4" /> Trainieren
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -518,11 +542,13 @@ export function TrainingDayItem({
 }
 
 export function TrainingPlanSection({
-  plan, onDelete, onChartOpen
+  plan, onDelete, onChartOpen, lastTrainedDayId, onStartTraining,
 }: {
   plan: PlanWithDays;
   onDelete: () => void;
   onChartOpen: (ex: Exercise) => void;
+  lastTrainedDayId?: number | null;
+  onStartTraining?: (dayId: number) => void;
 }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -604,6 +630,8 @@ export function TrainingPlanSection({
               day={day}
               onDelete={() => deleteDayMutation.mutate(day.id)}
               onChartOpen={onChartOpen}
+              isLastTrained={lastTrainedDayId === day.id}
+              onStartTraining={onStartTraining ? () => onStartTraining(day.id) : undefined}
             />
           ))}
 

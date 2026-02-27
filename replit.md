@@ -79,6 +79,7 @@ The frontend has a tab-based layout with bottom navigation for authenticated use
 - `GET /api/exercises/:id/last-workout` - Last workout log for exercise
 - `DELETE /api/exercises/:id` - Delete exercise
 - `POST /api/workout-logs` - Create workout log entry
+- `GET /api/training-status` - Last trained day per plan + suggested next day
 - `GET /api/analytics` - Weight change analytics (30-day period)
 
 ### Shared Code (shared/)

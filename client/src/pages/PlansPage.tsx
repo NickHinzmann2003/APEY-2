@@ -6,20 +6,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Loader2, Dumbbell, Folder, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import {
   PlanWithDays,
   TrainingPlanSection,
   WeightHistoryDialog,
 } from "@/components/training";
 
+type TrainingStatus = {
+  lastTrainedByPlan: Record<number, { dayId: number; dayName: string; trainedAt: string }>;
+  suggestedDay: { id: number; name: string; planId: number; planName: string; exerciseCount: number } | null;
+};
+
 export function PlansPage() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [chartExercise, setChartExercise] = useState<Exercise | null>(null);
   const [newPlanName, setNewPlanName] = useState("");
   const [isAddingPlan, setIsAddingPlan] = useState(false);
 
   const { data: plans, isLoading } = useQuery<PlanWithDays[]>({
     queryKey: ["/api/training-plans"],
+  });
+
+  const { data: trainingStatus } = useQuery<TrainingStatus>({
+    queryKey: ["/api/training-status"],
   });
 
   const createPlanMutation = useMutation({
@@ -36,9 +47,14 @@ export function PlansPage() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/training-plans/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training-plans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/training-status"] });
       toast({ title: "Trainingsplan gelöscht" });
     },
   });
+
+  const handleStartTraining = (dayId: number) => {
+    navigate(`/training?dayId=${dayId}`);
+  };
 
   if (isLoading) {
     return (
@@ -117,6 +133,8 @@ export function PlansPage() {
               plan={plan}
               onDelete={() => deletePlanMutation.mutate(plan.id)}
               onChartOpen={setChartExercise}
+              lastTrainedDayId={trainingStatus?.lastTrainedByPlan[plan.id]?.dayId ?? null}
+              onStartTraining={handleStartTraining}
             />
           ))}
         </div>
