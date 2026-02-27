@@ -81,8 +81,8 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-14 flex items-center justify-center">
-          <Link href="/plans" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity" data-testid="link-home">
-            <ApexLogo className="h-8 w-8 text-primary" />
+          <Link href="/plans" className="flex items-center hover:opacity-80 transition-opacity" data-testid="link-home">
+            <ApexLogo className="h-9 w-9 text-primary -mr-1" />
             <span className="font-display font-bold text-lg tracking-wider uppercase">
               <span className="text-primary">PEX</span> <span className="text-foreground">by Nick</span>
             </span>

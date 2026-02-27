@@ -2,48 +2,46 @@ export function ApexLogo({ className = "w-6 h-6" }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <path
-        d="M30 85C24 78 18 68 15 56C12 44 13 32 18 22"
+        d="M32 88C22 78 14 64 11 50C8 36 10 24 18 14"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="3.5"
         strokeLinecap="round"
         fill="none"
       />
-      <ellipse cx="16" cy="75" rx="5" ry="3" transform="rotate(-30 16 75)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="13" cy="65" rx="5" ry="3" transform="rotate(-20 13 65)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="12" cy="54" rx="5" ry="3" transform="rotate(-10 12 54)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="13" cy="43" rx="5" ry="3" transform="rotate(5 13 43)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="15" cy="33" rx="5" ry="3" transform="rotate(15 15 33)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="20" cy="24" rx="5" ry="3" transform="rotate(30 20 24)" stroke="currentColor" strokeWidth="1.8" fill="none" />
+      <path d="M28 84C22 76 18 68 15 58" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+
+      <path d="M24 80L14 74" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M20 72L9 68" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M16 62L6 60" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M14 52L5 52" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M14 42L6 40" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M16 33L8 28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M20 24L14 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
 
       <path
-        d="M70 85C76 78 82 68 85 56C88 44 87 32 82 22"
+        d="M68 88C78 78 86 64 89 50C92 36 90 24 82 14"
         stroke="currentColor"
-        strokeWidth="2.5"
+        strokeWidth="3.5"
         strokeLinecap="round"
         fill="none"
       />
-      <ellipse cx="84" cy="75" rx="5" ry="3" transform="rotate(30 84 75)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="87" cy="65" rx="5" ry="3" transform="rotate(20 87 65)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="88" cy="54" rx="5" ry="3" transform="rotate(10 88 54)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="87" cy="43" rx="5" ry="3" transform="rotate(-5 87 43)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="85" cy="33" rx="5" ry="3" transform="rotate(-15 85 33)" stroke="currentColor" strokeWidth="1.8" fill="none" />
-      <ellipse cx="80" cy="24" rx="5" ry="3" transform="rotate(-30 80 24)" stroke="currentColor" strokeWidth="1.8" fill="none" />
+      <path d="M72 84C78 76 82 68 85 58" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
 
-      <line x1="42" y1="90" x2="50" y2="85" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <line x1="58" y1="90" x2="50" y2="85" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M76 80L86 74" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M80 72L91 68" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M84 62L94 60" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M86 52L95 52" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M86 42L94 40" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M84 33L92 28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M80 24L86 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
 
-      <text
-        x="50"
-        y="68"
-        textAnchor="middle"
-        fontFamily="'Outfit', sans-serif"
-        fontWeight="900"
-        fontSize="50"
+      <path d="M38 94L50 88L62 94" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+
+      <path
+        d="M50 18L34 72H26L50 6L74 72H66L50 18Z"
         fill="currentColor"
-        letterSpacing="-2"
-      >
-        A
-      </text>
+      />
+      <rect x="33" y="52" width="34" height="6" rx="1" fill="currentColor" />
     </svg>
   );
 }

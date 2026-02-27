@@ -7,8 +7,8 @@ export function Landing() {
     <div className="min-h-screen bg-background flex flex-col font-sans text-foreground overflow-hidden selection:bg-primary selection:text-black">
       {/* Navbar */}
       <nav className="absolute top-0 left-0 w-full z-50 p-6 md:p-8 flex justify-between items-center">
-        <div className="flex items-center gap-1.5">
-          <ApexLogo className="h-12 w-12 text-primary" />
+        <div className="flex items-center">
+          <ApexLogo className="h-12 w-12 text-primary -mr-1" />
           <span className="font-display font-bold text-2xl tracking-wider uppercase">
             <span className="text-primary">PEX</span> <span className="text-white">by Nick</span>
           </span>
