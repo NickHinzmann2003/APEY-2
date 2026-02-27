@@ -71,7 +71,7 @@ export function Profile() {
 
       <div className="border border-white/10 rounded-2xl bg-white/5 p-6 text-center mb-6">
         <ApexLogo className="w-10 h-10 text-primary mx-auto mb-3" />
-        <p className="font-display font-bold text-lg">APEX by Nick</p>
+        <p className="font-display font-bold text-lg"><span className="text-primary">APEX</span> by Nick</p>
         <p className="text-muted-foreground text-sm mt-1">Dein persönlicher Trainingsplan-Tracker</p>
       </div>
 

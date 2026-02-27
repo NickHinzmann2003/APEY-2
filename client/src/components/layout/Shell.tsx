@@ -7,7 +7,6 @@ import {
   BarChart2, User as UserIcon
 } from "lucide-react";
 import { ApexLogo } from "@/components/icons/ApexLogo";
-import { AngularDumbbell } from "@/components/icons/AngularDumbbell";
 
 function BottomNav() {
   const [location] = useLocation();
@@ -16,7 +15,7 @@ function BottomNav() {
   const tabs = [
     { href: "/plans", icon: ClipboardList, label: "Pläne" },
     { href: "/exercises", icon: ListChecks, label: "Übungen" },
-    { href: "/training", icon: AngularDumbbell, label: "Training", isCenter: true },
+    { href: "/training", icon: ApexLogo, label: "Training", isCenter: true },
     { href: "/analytics", icon: BarChart2, label: "Statistik" },
     { href: "/profile", icon: UserIcon, label: "Profil" },
   ];
@@ -82,10 +81,10 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col">
       <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-14 flex items-center justify-center">
-          <Link href="/plans" className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity" data-testid="link-home">
-            <ApexLogo className="h-7 w-7" />
+          <Link href="/plans" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity" data-testid="link-home">
+            <ApexLogo className="h-8 w-8 text-primary" />
             <span className="font-display font-bold text-lg tracking-wider uppercase">
-              APEX <span className="text-foreground">by Nick</span>
+              <span className="text-primary">PEX</span> <span className="text-foreground">by Nick</span>
             </span>
           </Link>
         </div>

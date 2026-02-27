@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { DayWithExercises, WeightHistoryDialog } from "@/components/training";
-import { AngularDumbbell } from "@/components/icons/AngularDumbbell";
+import { ApexLogo } from "@/components/icons/ApexLogo";
 
 type TrainingStatus = {
   lastTrainedByPlan: Record<number, { dayId: number; dayName: string; trainedAt: string }>;
@@ -462,7 +462,7 @@ export function ActiveTraining() {
             <p className="text-xs font-bold uppercase tracking-wider text-primary/70 mb-3">Vorschlag</p>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                <AngularDumbbell className="w-6 h-6 text-primary" />
+                <ApexLogo className="w-6 h-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-display font-bold text-xl leading-tight truncate" data-testid="text-suggested-day">{suggested.name}</p>
@@ -481,7 +481,7 @@ export function ActiveTraining() {
           </div>
         ) : (
           <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl">
-            <AngularDumbbell className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
+            <ApexLogo className="w-12 h-12 text-muted-foreground/20 mx-auto mb-4" />
             <h3 className="text-lg font-display font-semibold mb-2">Kein Training verfügbar</h3>
             <p className="text-muted-foreground text-sm max-w-xs mx-auto">
               Erstelle zuerst Trainingspläne mit Übungen, dann wird dir hier dein nächstes Training vorgeschlagen.
